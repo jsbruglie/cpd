@@ -28,11 +28,14 @@ int main(int argc, char* argv[]){
 			sscanf(line, "%d %d %d\n", &x, &y, &z);
 			printf("%d %d %d\n", x, y, z);
 		}
-		
-
-
 	}
-
-
+	int g;
+	//A live cell with fewer than two live neighbors
+	//A live cell with two to four live neighbours lives on to the next generation
+	//A live cell with more than four live neighbors dies
+	//A dead cell with two or three live neighbors becomes a live cell
+	for(g=0; g<number_generations; g++){
+		printf("Generation #: %d\n",g);
+	}
 	exit(0);
 }
