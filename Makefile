@@ -1,16 +1,16 @@
-SEQ_OBJECT_FILES = sequential.o 
+SEQ_OBJECT_FILES = matrix.o 
 
 CFLAGS = -ggdb -Wall
 LIBS =
 CC = gcc  
 
-all: sequential cleanup  
-sequential: $(SEQ_OBJECT_FILES) 
+all: matrix cleanup  
+matrix: $(SEQ_OBJECT_FILES) 
 
-sequential:
+matrix:
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
 
-sequential.o: 
+matrix.o: 
 
 %.o: %.c
 	$(CC) -c $<  
@@ -19,4 +19,4 @@ cleanup:
 	rm -f *.o
 
 clean:
-	rm -f sequential *.o *~ 
+	rm -f matrix *.o *~ 
