@@ -1,8 +1,8 @@
-#include "matrix.h"
+#include "test.h"
 
 cell ***M;
 
-// To run ./matrix simple.in 2
+// To run ./test simple.in 2	
 
 int main(int argc, char* argv[]){
 	char* fileName = argv[1];

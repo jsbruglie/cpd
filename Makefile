@@ -1,16 +1,16 @@
-SEQ_OBJECT_FILES = matrix.o 
+SEQ_OBJECT_FILES = test.o 
 
 CFLAGS = -ggdb -Wall
 LIBS =
 CC = gcc  
 
-all: matrix cleanup  
-matrix: $(SEQ_OBJECT_FILES) 
+all: test cleanup  
+test: $(SEQ_OBJECT_FILES) 
 
-matrix:
+test:
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
 
-matrix.o: 
+test.o: 
 
 %.o: %.c
 	$(CC) -c $<  
@@ -19,4 +19,4 @@ cleanup:
 	rm -f *.o
 
 clean:
-	rm -f matrix *.o *~ 
+	rm -f test *.o *~ 
