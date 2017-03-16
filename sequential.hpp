@@ -9,6 +9,7 @@
 #include <vector>
 #include <list>
 #include <sys/time.h>
+#include <omp.h>
 
 #define X 0
 #define Y 1

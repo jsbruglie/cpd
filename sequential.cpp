@@ -8,6 +8,7 @@ int main(int argc, char* argv[]){ //g++ -fopenmp -o seq sequential.cpp
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
 //-------------------------------------------------------------BENCHMARK CODE STARTS HERE----------------------------------------------------
+	omp_set_num_threads(8);
 	std::ifstream infile(argv[1]);
 	int number_generations = atoi(argv[2]);
 	int x,y,z, cube_size, live_neighbours;
@@ -29,11 +30,12 @@ int main(int argc, char* argv[]){ //g++ -fopenmp -o seq sequential.cpp
 	}
 	//Reads all further lines
 	while (getline(infile, line)){
-	    std::istringstream iss(line);
+		std::istringstream iss(line);
 	    if ((iss >> x >> y >> z)) { 
 	    	cout << "Read: X " << x << " Y " << y << " Z " << z << endl;
 	    	grid[x][y].push_back(z);
 	    }
+		
 	}
 	//DEBUG
 	//for(int i = 0; i<cube_size;i++){
