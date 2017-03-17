@@ -11,6 +11,10 @@
 #include <sys/time.h>
 #include <omp.h>
 
+using namespace std;
+using std::vector;
+using std::list;
+
 #define X 0
 #define Y 1
 #define Z 2

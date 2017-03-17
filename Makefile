@@ -10,18 +10,15 @@ CXXLIBS = -fopenmp
 
 all: test sequential cleanup  
 test: $(TEST_OBJECT_FILES) 
+sequential: $(SEQUENTIAL_OBJECT_FILES)
 
 test:
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
-
-test.o: 
-
-sequential: $(SEQUENTIAL_OBJECT_FILES)
 	
 sequential:
 	$(CXX) $(CXXFLAGS) $^ $(CXXLIBS) -o $@
 
-sequential.o:
+test.o sequential.o:
 
 %.o: %.c
 	$(CC) -c $<  
