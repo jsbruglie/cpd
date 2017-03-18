@@ -15,32 +15,72 @@
 using namespace std;
 using std::vector;
 using std::set;
-using std::list;
+using std::string;
 
-#define X 0
-#define Y 1
-#define Z 2
 #define ALIVE true
 #define DEAD false
 
+#define EPSILON 1e-8
 
 class Cell{
-	public:
-		int x;
-		int y;
-		int z;
-		bool state;
-		bool next_state;
-		Cell(int a, int b, int c);
+    public:
+        /* Attributes */
+        int x;              /**< X coordinate */
+        int y;              /**< Y coordinate */
+        int z;              /**< Z coordinate */
+        bool state;         /**< Current state of the cell: true for ALIVE, false for DEAD */
+        bool next_state;    /**< Next state of the cell */
+        /* Methods */
+        Cell(int a, int b, int c, bool s);
+        /* @brief */
+        bool operator<(const Cell& right) const {
+            if (x < right.x - EPSILON) return true;
+            if (x > right.x + EPSILON) return false;
+            if (y < right.y - EPSILON) return true;
+            if (y > right.y + EPSILON) return false;
+            if (z < right.z - EPSILON) return true;
+            return false;
+        }
 };
-Cell::Cell(int a, int b, int c){
-	x = a;
-	y = b;
-	z = c;
-	state = ALIVE;
-	next_state = ALIVE;
+
+/* @brief Cell constructor
+ * @param a X coordinate
+ * @param b Y coordinate
+ * @param c Z coordinate
+ * @param s initial state
+ */
+Cell::Cell(int a, int b, int c, bool s){
+    x = a;
+    y = b;
+    z = c;
+    state = s;
+    next_state = DEAD;
 }
 
-bool isInList(int k, std::list<int> grid);
-void check_dimension(int dim, int i, int j, int k, std::vector<std::vector<std::list<int> > > grid, int &live_neighbours, int cube_size);
+/* @brief checks if a set contains a given integer
+ *
+ *
+ */
+bool setContains(int k, std::set<int> grid);
+
+/* @brief
+ *
+ */
+void check_dimension(int dim, int i, int j, int k, std::vector<std::vector<std::set<int> > > grid, int &live_neighbours, int cube_size);
+
+/* @brief
+ *
+ */
+std::vector<Cell> getNeighbours(int x, int y, int z, int cube_size);
+
+/* @brief
+ *
+ */
+void parse_args(int argc, char* argv[], string &file, int &generations);
+
+/* @ brief
+ *
+ */
+void parse_file(string file, int &cube_size, vector<vector<set<int> > > &graph, set<Cell> &cell_set);
+
 #endif

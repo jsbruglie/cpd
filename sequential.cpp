@@ -15,114 +15,101 @@ int main(int argc, char* argv[]){
 
     struct timeval start, end;  /**< Timing variables */
 
-    gettimeofday(&start, NULL);
-//-------------------------------------------------------------BENCHMARK CODE STARTS HERE----------------------------------------------------
-
-    std::ifstream infile(argv[1]);
-    int number_generations = atoi(argv[2]);
-    int cube_size;
+    string file;                            /**< Input data file name */
+    int generations = 0;                    /**< Number of generations to proccess */
+    int cube_size = 0;                      /**< Size of the 3D space */
     
-    vector< vector< list <int> > > graph;    /**< The graph representation */
-    set<Cell> cell_set;                		 
+    vector< vector< set <int> > > graph;    /**< The graph representation */
+    set<Cell> cell_set;                     /**< The set of cells to be checked */                       
 
+    parse_args(argc, argv, file, generations);
+    
+    gettimeofday(&start, NULL); // Start timer
 
-    parse_file(cube_size, graph, infile, cell_set);
-    
-    /* TODO - PROGRAM MAIN LOOP
-    // For each generation
-    for (int g = 1; g <= number_generations; g++){
-        // Obtain inactive neighbors and store in a set
-        // For node iter in alive
-            // temp_array[6][3] = get_neighbor_coordinates(int x,y,z) 
-            // for neighbor in temp_array
-                // try insertion in dead set
-        // Section 1
-        // For node iter in alive 
-            // alive_array[i] = check_alive(grid, iter);
-        // Section 2
-        // For neighbor iter in dead
-            // dead_array[i] = check_alive(grid, iter);
-        // The following two steps both resort to the previous arrays
-        // Update graph representation
-        // Update the alive list
-    }
-    return;
-    */
-    
-    for(int g = 1; g <= number_generations; g++){
+    parse_file(file, cube_size, graph, cell_set);
+
+    for(int g = 1; g <= generations; g++){
         cout << "Generation " << g << endl; //DEBUG
-        set<Cell>::const_iterator c;
-        for(c=cell_set.begin(); c!=cell_set.end(); ++c){
-
+        
+        set<Cell>::const_iterator i;
+        /* Make a copy of the live cells set */
+        set<Cell> live = cell_set;
+        /* Iterate over the temporary copy of live cells set and add (dead) neighbour cells to the set */
+        for(i = live.begin(); i != live.end(); ++i){
+            cout << i->x << " " << i->y << " " << i-> z << endl; // DEBUG
+            vector<Cell> neighbours = getNeighbours(i->x, i->y, i->z, cube_size);
+            vector<Cell>::const_iterator j;
+            for (j = neighbours.begin(); j != neighbours.end(); ++j){
+                cell_set.insert((Cell)*j);
+            }
         }
-        
-        
+    //     /* Check each cell and update its next state field */
+    //     for(i = cell_set.begin(); i != cell_set.end(); ++i){
+    //         //setNextState();    
+    //     }
+    //     /* Update Graph */
+    //     /* Remove Dead Cells from cell_set */
     }
-    //-------------------------------------------------------------BENCHMARK CODE ENDS HERE----------------------------------------------------
 
-    gettimeofday(&end, NULL);
-    cout << "Seconds: " << ((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6 << endl;
+    gettimeofday(&end, NULL);   // Stop Timer
+    cout << "Total Runtime: " << ((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6 << endl;
     return 0;
 }
 
-
-
-
-
-// TODO - check_alive
-// boolean check_alive(graph, node)
-// returns true if n = count_neighbors(graph, node) && n >= 2 && n <= 4 else false
-
-// TODO - count_neighbors(graph, node)
-// returns the number of alive neighbors given a node and the graph for efficient search
-
-// TODO - get_neighbor_coordinates(int x,y,z)
-
-// TODO - think of proper function names
-Cell* getNeighbours(int x, int y, int z){
-	Cell n[6];
-	//(!isInList(k, graph[(i+1)%cube_size][j])) ? d[0] = Cell() : live_neighbours++;
-
+void setNextState(){
 
 }
 
-void check_dimension(int dim, int i, int j, int k, vector<vector<list<int> > > graph, int &live_neighbours, int cube_size){
-	switch(dim){
-		case X:
-			if(isInList(k, graph[(i+1)%cube_size][j])) {  live_neighbours++;  }
-			if(isInList(k, graph[((i-1) < 0 ? (cube_size-1) : (i-1))][j])) {  live_neighbours++;  }
-			break;
-		case Y:
-			if(isInList(k, graph[i][(j+1)%cube_size])) {  live_neighbours++;  }
-			if(isInList(k, graph[i][((j-1) < 0 ? (cube_size-1) : (j-1))])) {  live_neighbours++;  }
-			break;
-		case Z:
-			if(isInList((k+1)%cube_size, graph[i][j])) {  live_neighbours++;  }
-			if(isInList(((k-1) < 0 ? (cube_size-1) : (k-1)), graph[i][j])) {  live_neighbours++;  }
-			break;
-	}
+vector<Cell> getNeighbours(int x, int y, int z, int cube_size){
+    
+    std::vector<Cell> neighbours;
+    // Cells are assumed to be dead since 
+    neighbours.push_back(Cell((x+1)%cube_size,y,z,DEAD));
+    neighbours.push_back(Cell((x-1) < 0 ? (cube_size-1) : (x-1),y,z,DEAD));
+    neighbours.push_back(Cell(x,(y+1)%cube_size,z,DEAD));
+    neighbours.push_back(Cell(x,((y-1) < 0 ? (cube_size-1) : (y-1)),z,DEAD));
+    neighbours.push_back(Cell(x,y,(z+1)%cube_size,DEAD));
+    neighbours.push_back(Cell(x,y,((z-1) < 0 ? (cube_size-1) : (z-1)),DEAD));
+    return neighbours;
 }
 
-// Auxiliar Functions
-// TODO - std::lists already have a built-in find function for ints ...
-bool isInList(int k, list<int> graph){
-    //If list is empty return false
-    if(graph.empty()){
-        return false;
-    }else{
-        list<int>::const_iterator iterator;
-        for(iterator = graph.begin(); iterator != graph.end();++iterator){
-            if(*iterator == k)
-                return true;
-        }
+int liveNeighbors(int i, int j, int k, vector<vector<set<int> > > graph, int cube_size){
+    int live_neighbours = 0;
+    if(setContains(k, graph[(i+1)%cube_size][j])) {  live_neighbours++;  }
+    if(setContains(k, graph[((i-1) < 0 ? (cube_size-1) : (i-1))][j])) {  live_neighbours++;  }
+    if(setContains(k, graph[i][(j+1)%cube_size])) {  live_neighbours++;  }
+    if(setContains(k, graph[i][((j-1) < 0 ? (cube_size-1) : (j-1))])) {  live_neighbours++;  }
+    if(setContains((k+1)%cube_size, graph[i][j])) {  live_neighbours++;  }
+    if(setContains(((k-1) < 0 ? (cube_size-1) : (k-1)), graph[i][j])) {  live_neighbours++;  }
+    return live_neighbours;
+}
+
+bool setContains(int k, std::set<int> _set){
+    if (_set.count(k)){
+        return true;
     }
-    return false; 
+    return false;
 }
 
-void parse_file(int &cube_size, vector<vector<list<int> > > &graph, std::ifstream infile, set<int> &cell_set){
-	int x,y,z;
-	std::string line;
-	if(!infile.good()){
+void parse_args(int argc, char* argv[], string &file, int &generations){
+    if (argc == 3){
+        file = argv[1];
+        generations = atoi(argv[2]);
+        if (generations > 0 && !file.empty())
+            return;
+    }    
+    cout << "Usage: " << argv[0] << " [data_file.in] [number_generations]" << endl;
+    exit(EXIT_FAILURE);
+}
+
+void parse_file(string file, int &cube_size, vector<vector<set<int> > > &graph, set<Cell> &cell_set){
+    
+    int x,y,z;
+    std::ifstream infile(file.c_str());
+
+    std::string line;
+    if(!infile.good()){
+        cout << "ERROR: Could not find file." << endl;
         exit(EXIT_FAILURE);
     }
 
@@ -130,18 +117,17 @@ void parse_file(int &cube_size, vector<vector<list<int> > > &graph, std::ifstrea
     getline(infile, line);
     cube_size = atoi(line.data());
     graph.resize(cube_size);
-    for(int i=0;i<cube_size;i++)
+    for(int i = 0; i < cube_size; i++)
         graph[i].resize(cube_size);
     
     // Read remaing lines
     while (getline(infile, line)){
         std::istringstream iss(line);
         if ((iss >> x >> y >> z)) { 
-            cout << "Read: X " << x << " Y " << y << " Z " << z << endl;
-            graph[x][y].push_back(z);
-            Cell new_cell(x,y,z);
+            cout << "Read: x " << x << " y " << y << " z " << z << endl;
+            graph[x][y].insert(z);
+            Cell new_cell(x,y,z,ALIVE);
             cell_set.insert(new_cell);
         }
     }
 }
-
