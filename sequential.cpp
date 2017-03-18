@@ -20,36 +20,14 @@ int main(int argc, char* argv[]){
 
     std::ifstream infile(argv[1]);
     int number_generations = atoi(argv[2]);
-    int x,y,z, cube_size, live_neighbours;
-    std::string line;
-    bool alive;
+    int cube_size;
     
-    vector< vector< list <int> > > grid;    /**< The graph representation */
-    list<Cell> die_schedule;                /**< The list of nodes scheduled to die in next gen */
-    list<Cell> born_schedule;               /**< The list of nodes scheduled to live in next gen */
+    vector< vector< list <int> > > graph;    /**< The graph representation */
+    set<Cell> cell_set;                		 
 
-    // TODO - PARSE FILE IN ITS OWN FUNCTION
-    // Open file
-    if(!infile.good()){
-        exit(EXIT_FAILURE);
-    }
 
-    // Read first line
-     getline(infile, line);
-        cube_size = atoi(line.data());
-        grid.resize(cube_size);
-        for(int i=0;i<cube_size;i++)
-            grid[i].resize(cube_size);
+    parse_file(cube_size, graph, infile, cell_set);
     
-    // Read remaing lines
-    while (getline(infile, line)){
-        std::istringstream iss(line);
-        if ((iss >> x >> y >> z)) { 
-            cout << "Read: X " << x << " Y " << y << " Z " << z << endl;
-            grid[x][y].push_back(z);
-        }
-    }
-
     /* TODO - PROGRAM MAIN LOOP
     // For each generation
     for (int g = 1; g <= number_generations; g++){
@@ -58,80 +36,27 @@ int main(int argc, char* argv[]){
             // temp_array[6][3] = get_neighbor_coordinates(int x,y,z) 
             // for neighbor in temp_array
                 // try insertion in dead set
-
         // Section 1
         // For node iter in alive 
             // alive_array[i] = check_alive(grid, iter);
-
         // Section 2
         // For neighbor iter in dead
             // dead_array[i] = check_alive(grid, iter);
-
         // The following two steps both resort to the previous arrays
         // Update graph representation
         // Update the alive list
     }
-
     return;
     */
     
     for(int g = 1; g <= number_generations; g++){
-        cout << "Generation " << g << endl;
-        for(int i=0; i < cube_size; i++){
-            for(int j=0; j<cube_size;j++){
-                for(int k=0; k<cube_size;k++){
-                    //Go along the "list" to see if we are dealing with a dead or alive cell
-                    alive = false;
-                    list<int>::const_iterator iterator;
-                    for(iterator = grid[i][j].begin(); iterator != grid[i][j].end();++iterator){
-                        if(*iterator == k)
-                            alive = true;
-                    }
-                    live_neighbours = 0;
-                    //compute their live neighbours
-                    check_dimension(X,i,j,k,grid,live_neighbours, cube_size);
-                    check_dimension(Y,i,j,k,grid,live_neighbours, cube_size);
-                    check_dimension(Z,i,j,k,grid,live_neighbours, cube_size);
-                    //If its a live cell
-                    if(alive){
-                        if(live_neighbours < 2 || live_neighbours > 4){
-                            Cell new_cell(i,j,k);
-                            die_schedule.push_back(new_cell);
-                        }
-                        //Check and schedule them to die
-                    }else{
-                        //If its a dead
-                        //Schedule them to be born
-                        if(live_neighbours==2 || live_neighbours==3){
-                            Cell new_cell(i,j,k);
-                            born_schedule.push_back(new_cell);
-                        }
-                    }
-                }
-            }
+        cout << "Generation " << g << endl; //DEBUG
+        set<Cell>::const_iterator c;
+        for(c=cell_set.begin(); c!=cell_set.end(); ++c){
+
         }
-        //Remove the ones scheduled to die
-        list<Cell>::const_iterator iterator;
-        for(iterator = die_schedule.begin(); iterator != die_schedule.end();++iterator){
-            Cell c = *iterator;
-            grid[c.x][c.y].remove(c.z);
-        }
-        //Insert the ones scheduled to be born
-        for(iterator = born_schedule.begin(); iterator != born_schedule.end();++iterator){
-            Cell c = *iterator;
-            grid[c.x][c.y].push_back(c.z);
-        }
-        for(int i=0;i<cube_size;i++) //X
-            for(int j=0;j<cube_size;j++) //Y
-                if(!grid[i][j].empty()){
-                    list<int>::const_iterator iterator;
-                    for(iterator = grid[i][j].begin(); iterator != grid[i][j].end();++iterator){
-                        cout << i << " " << j << " " << *iterator << endl;
-                    }
-                }
-    
-        die_schedule.clear();
-        born_schedule.clear();
+        
+        
     }
     //-------------------------------------------------------------BENCHMARK CODE ENDS HERE----------------------------------------------------
 
@@ -142,84 +67,81 @@ int main(int argc, char* argv[]){
 
 
 
-// TODO - std::lists already have a built-in find function for ints ...
-bool isInList(int k, list<int> grid){
-    //If list is empty return false
-    if(grid.empty()){
-        return false;
-    }else{
-        list<int>::const_iterator iterator;
-        for(iterator = grid.begin(); iterator != grid.end();++iterator){
-            if(*iterator == k)
-                return true;
-        }
-    }
-    return false; //Couldn't find it
-}
+
 
 // TODO - check_alive
-// boolean check_alive(grid, node)
-// returns true if n = count_neighbors(grid, node) && n >= 2 && n <= 4 else false
+// boolean check_alive(graph, node)
+// returns true if n = count_neighbors(graph, node) && n >= 2 && n <= 4 else false
 
-// TODO - count_neighbors(grid, node)
-// returns the number of alive neighbors given a node and the grid for efficient search
+// TODO - count_neighbors(graph, node)
+// returns the number of alive neighbors given a node and the graph for efficient search
 
 // TODO - get_neighbor_coordinates(int x,y,z)
 
 // TODO - think of proper function names
+Cell* getNeighbours(int x, int y, int z){
+	Cell n[6];
+	//(!isInList(k, graph[(i+1)%cube_size][j])) ? d[0] = Cell() : live_neighbours++;
 
-void check_dimension(int dim, int i, int j, int k, vector<vector<list<int> > > grid, int &live_neighbours, int cube_size){
-    if(dim == X){
-        if(i==0){
-            if(isInList(k,grid[cube_size-1][j]))
-                live_neighbours++;
-            if(isInList(k,grid[i+1][j]))
-                live_neighbours++;
-        }else if(i==cube_size-1){
-            if(isInList(k,grid[0][j]))
-                live_neighbours++;
-            if(isInList(k,grid[i-1][j]))
-                live_neighbours++;
-        }else{
-            if(isInList(k,grid[i-1][j]))
-                live_neighbours++;
-            if(isInList(k,grid[i+1][j]))
-                live_neighbours++;
-        }   
-    }
-    if(dim == Y){
-        if(j==0){
-            if(isInList(k,grid[i][cube_size-1]))
-                live_neighbours++;
-            if(isInList(k,grid[i][j+1]))
-                live_neighbours++;
-        }else if(j==cube_size-1){
-            if(isInList(k,grid[i][0]))
-                live_neighbours++;
-            if(isInList(k,grid[i][j-1]))
-                live_neighbours++;
-        }else{
-            if(isInList(k,grid[i][j-1]))
-                live_neighbours++;
-            if(isInList(k,grid[i][j+1]))
-                live_neighbours++;
+
+}
+
+void check_dimension(int dim, int i, int j, int k, vector<vector<list<int> > > graph, int &live_neighbours, int cube_size){
+	switch(dim){
+		case X:
+			if(isInList(k, graph[(i+1)%cube_size][j])) {  live_neighbours++;  }
+			if(isInList(k, graph[((i-1) < 0 ? (cube_size-1) : (i-1))][j])) {  live_neighbours++;  }
+			break;
+		case Y:
+			if(isInList(k, graph[i][(j+1)%cube_size])) {  live_neighbours++;  }
+			if(isInList(k, graph[i][((j-1) < 0 ? (cube_size-1) : (j-1))])) {  live_neighbours++;  }
+			break;
+		case Z:
+			if(isInList((k+1)%cube_size, graph[i][j])) {  live_neighbours++;  }
+			if(isInList(((k-1) < 0 ? (cube_size-1) : (k-1)), graph[i][j])) {  live_neighbours++;  }
+			break;
+	}
+}
+
+// Auxiliar Functions
+// TODO - std::lists already have a built-in find function for ints ...
+bool isInList(int k, list<int> graph){
+    //If list is empty return false
+    if(graph.empty()){
+        return false;
+    }else{
+        list<int>::const_iterator iterator;
+        for(iterator = graph.begin(); iterator != graph.end();++iterator){
+            if(*iterator == k)
+                return true;
         }
     }
-    //This is diferent now, its only going along the list
-    if(dim == Z){
-        if(k==0){
-            if(isInList(cube_size-1,grid[i][j]))
-                live_neighbours++;
-            if(isInList(k+1,grid[i][j]))
-                live_neighbours++;
-        }else if(k==cube_size-1){
-            if(isInList(0, grid[i][j]))
-                live_neighbours++;
-            if(isInList(k-1, grid[i][j]))
-                live_neighbours++;
-        }else{
-            if(isInList(k-1, grid[i][j]))
-                live_neighbours++;
+    return false; 
+}
+
+void parse_file(int &cube_size, vector<vector<list<int> > > &graph, std::ifstream infile, set<int> &cell_set){
+	int x,y,z;
+	std::string line;
+	if(!infile.good()){
+        exit(EXIT_FAILURE);
+    }
+
+    // Read first line
+    getline(infile, line);
+    cube_size = atoi(line.data());
+    graph.resize(cube_size);
+    for(int i=0;i<cube_size;i++)
+        graph[i].resize(cube_size);
+    
+    // Read remaing lines
+    while (getline(infile, line)){
+        std::istringstream iss(line);
+        if ((iss >> x >> y >> z)) { 
+            cout << "Read: X " << x << " Y " << y << " Z " << z << endl;
+            graph[x][y].push_back(z);
+            Cell new_cell(x,y,z);
+            cell_set.insert(new_cell);
         }
     }
 }
+
