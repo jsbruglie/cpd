@@ -28,8 +28,8 @@ class Cell{
         int x;              /**< X coordinate */
         int y;              /**< Y coordinate */
         int z;              /**< Z coordinate */
-        bool state;         /**< Current state of the cell: true for ALIVE, false for DEAD */
-        bool next_state;    /**< Next state of the cell */
+        mutable bool state;         /**< Current state of the cell: true for ALIVE, false for DEAD */
+        mutable bool next_state;    /**< Next state of the cell */
         /* Methods */
         Cell(int a, int b, int c, bool s);
         /* @brief */
@@ -54,7 +54,7 @@ Cell::Cell(int a, int b, int c, bool s){
     y = b;
     z = c;
     state = s;
-    next_state = DEAD;
+    next_state = s;
 }
 
 /* @brief checks if a set contains a given integer
@@ -81,6 +81,11 @@ void parse_args(int argc, char* argv[], string &file, int &generations);
 /* @ brief
  *
  */
-void parse_file(string file, int &cube_size, vector<vector<set<int> > > &graph, set<Cell> &cell_set);
+void parse_file(string file, int &cube_size, std::vector<std::vector<std::set<int> > > &graph, std::set<Cell> &cell_set);
+
+
+bool setNextState(bool st, std::vector<std::vector<std::set<int> > > graph, int cube_size, int x, int y, int z);
+
+int liveNeighbors(int i, int j, int k, std::vector<std::vector<std::set<int> > > graph, int cube_size);
 
 #endif

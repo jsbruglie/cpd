@@ -13,8 +13,6 @@
 
 int main(int argc, char* argv[]){
 
-    struct timeval start, end;  /**< Timing variables */
-
     string file;                            /**< Input data file name */
     int generations = 0;                    /**< Number of generations to proccess */
     int cube_size = 0;                      /**< Size of the 3D space */
@@ -24,39 +22,73 @@ int main(int argc, char* argv[]){
 
     parse_args(argc, argv, file, generations);
     
-    gettimeofday(&start, NULL); // Start timer
+    int start = omp_get_wtime();  //Start Timer
 
     parse_file(file, cube_size, graph, cell_set);
-
+    set<Cell>::const_iterator i;
     for(int g = 1; g <= generations; g++){
         cout << "Generation " << g << endl; //DEBUG
         
-        set<Cell>::const_iterator i;
+        
         /* Make a copy of the live cells set */
         set<Cell> live = cell_set;
         /* Iterate over the temporary copy of live cells set and add (dead) neighbour cells to the set */
         for(i = live.begin(); i != live.end(); ++i){
-            cout << i->x << " " << i->y << " " << i-> z << endl; // DEBUG
+            //cout << i->x << " " << i->y << " " << i-> z << " " << i->state << endl; // DEBUG
             vector<Cell> neighbours = getNeighbours(i->x, i->y, i->z, cube_size);
             vector<Cell>::const_iterator j;
             for (j = neighbours.begin(); j != neighbours.end(); ++j){
                 cell_set.insert((Cell)*j);
             }
         }
-    //     /* Check each cell and update its next state field */
-    //     for(i = cell_set.begin(); i != cell_set.end(); ++i){
-    //         //setNextState();    
-    //     }
-    //     /* Update Graph */
-    //     /* Remove Dead Cells from cell_set */
+        /* Check each cell and update its next state field */
+        for(i = cell_set.begin(); i != cell_set.end(); ++i){
+            i->next_state = setNextState(i->state, graph, cube_size, i->x, i->y, i->z);    
+        }
+        //     /* Update Graph */
+        for(i = cell_set.begin(); i != cell_set.end(); ++i){
+            if(i->state != i->next_state){
+                if(i->state == ALIVE){ //Alive scheduled to die
+                    //Remove from graph
+                    graph[i->x][i->y].erase(i->z);
+                }   
+                if(i->state == DEAD){ //Dead scheduled to be alive
+                    //Add to graph
+                    graph[i->x][i->y].insert(i->z);
+                }
+                i->state = i->next_state;
+            }    
+        }
+        //     /* Remove Dead Cells from cell_set */
+        for(i = cell_set.begin(); i != cell_set.end(); ++i){
+            if(i->state == DEAD)
+                cell_set.erase(*i);    
+        }
     }
 
-    gettimeofday(&end, NULL);   // Stop Timer
-    cout << "Total Runtime: " << ((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6 << endl;
+    for(i = cell_set.begin(); i != cell_set.end(); ++i){
+        cout << i->x << " " << i->y << " " << i-> z << " " << i->state << endl;    
+    }
+
+    int end = omp_get_wtime();   // Stop Timer
+    cout << "Total Runtime: " << (end - start) << endl;
     return 0;
 }
 
-void setNextState(){
+bool setNextState(bool st, vector<vector<set<int> > > graph, int cube_size, int x, int y, int z){
+    int live_neighbours = liveNeighbors(x, y, z, graph, cube_size);
+    if(st == DEAD){
+        if(live_neighbours==2 || live_neighbours==3){
+            //Change its state
+            return ALIVE;
+        }
+    }
+    if(st == ALIVE){
+        if(live_neighbours < 2 || live_neighbours > 4){
+            //Change its state
+            return DEAD;
+        }
+    }
 
 }
 
