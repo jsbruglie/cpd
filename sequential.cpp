@@ -22,19 +22,18 @@ int main(int argc, char* argv[]){
 
     parse_args(argc, argv, file, generations);
     
-    int start = omp_get_wtime();  //Start Timer
+    // int start = omp_get_wtime();  //Start Timer
 
     parse_file(file, cube_size, graph, cell_set);
+    
     set<Cell>::const_iterator i;
     for(int g = 1; g <= generations; g++){
-        cout << "Generation " << g << endl; //DEBUG
-        
-        
+        // cout << "Generation " << g << endl; //DEBUG
         /* Make a copy of the live cells set */
         set<Cell> live = cell_set;
         /* Iterate over the temporary copy of live cells set and add (dead) neighbour cells to the set */
         for(i = live.begin(); i != live.end(); ++i){
-            //cout << i->x << " " << i->y << " " << i-> z << " " << i->state << endl; // DEBUG
+            // cout << "x:" << i->x << " y:" << i->y << " z:" << i-> z << " state:" << i->state << " next:" << i->next_state << endl;
             vector<Cell> neighbours = getNeighbours(i->x, i->y, i->z, cube_size);
             vector<Cell>::const_iterator j;
             for (j = neighbours.begin(); j != neighbours.end(); ++j){
@@ -43,53 +42,55 @@ int main(int argc, char* argv[]){
         }
         /* Check each cell and update its next state field */
         for(i = cell_set.begin(); i != cell_set.end(); ++i){
-            i->next_state = setNextState(i->state, graph, cube_size, i->x, i->y, i->z);    
+            i->next_state = setNextState(i->state, graph, cube_size, i->x, i->y, i->z);
         }
-        //     /* Update Graph */
+        /* Update Graph */
         for(i = cell_set.begin(); i != cell_set.end(); ++i){
             if(i->state != i->next_state){
-                if(i->state == ALIVE){ //Alive scheduled to die
-                    //Remove from graph
+                // If a live cell is scheduled to die 
+                if(i->state == ALIVE){
                     graph[i->x][i->y].erase(i->z);
-                }   
-                if(i->state == DEAD){ //Dead scheduled to be alive
-                    //Add to graph
+                }
+                // If a dead cell is scheduled to live   
+                else if(i->state == DEAD){
                     graph[i->x][i->y].insert(i->z);
                 }
                 i->state = i->next_state;
             }    
         }
-        //     /* Remove Dead Cells from cell_set */
+        /* Remove Dead Cells from cell_set */
         for(i = cell_set.begin(); i != cell_set.end(); ++i){
             if(i->state == DEAD)
                 cell_set.erase(*i);    
         }
     }
 
+    /* Print the final set of live cells */
     for(i = cell_set.begin(); i != cell_set.end(); ++i){
-        cout << i->x << " " << i->y << " " << i-> z << " " << i->state << endl;    
+        cout << i->x << " " << i->y << " " << i-> z << endl;    
     }
 
-    int end = omp_get_wtime();   // Stop Timer
-    cout << "Total Runtime: " << (end - start) << endl;
+    //int end = omp_get_wtime();   // Stop Timer
+    //cout << "Total Runtime: " << (end - start) << endl;
     return 0;
 }
 
-bool setNextState(bool st, vector<vector<set<int> > > graph, int cube_size, int x, int y, int z){
+bool setNextState(bool state, vector<vector<set<int> > > graph, int cube_size, int x, int y, int z){
     int live_neighbours = liveNeighbors(x, y, z, graph, cube_size);
-    if(st == DEAD){
-        if(live_neighbours==2 || live_neighbours==3){
-            //Change its state
-            return ALIVE;
-        }
-    }
-    if(st == ALIVE){
+    //cout << "x:" << x << " y:" << y << " z:" << z << " state:" << state << " live_neighbours:" << live_neighbours; // DEBUG
+    if (state == ALIVE){
         if(live_neighbours < 2 || live_neighbours > 4){
-            //Change its state
+            //cout << " dies." << endl; // DEBUG
             return DEAD;
         }
+    }else if(state == DEAD){
+        if(live_neighbours == 2 || live_neighbours == 3){
+            //cout << " lives." << endl; // DEBUG
+            return ALIVE;
+        }   
     }
-
+    //cout << " unchanged." << endl; // DEBUG
+    return state;
 }
 
 vector<Cell> getNeighbours(int x, int y, int z, int cube_size){
@@ -156,7 +157,7 @@ void parse_file(string file, int &cube_size, vector<vector<set<int> > > &graph, 
     while (getline(infile, line)){
         std::istringstream iss(line);
         if ((iss >> x >> y >> z)) { 
-            cout << "Read: x " << x << " y " << y << " z " << z << endl;
+            //cout << "Read: x " << x << " y " << y << " z " << z << endl;
             graph[x][y].insert(z);
             Cell new_cell(x,y,z,ALIVE);
             cell_set.insert(new_cell);

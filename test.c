@@ -40,7 +40,7 @@ int main(int argc, char* argv[]){
 	int g;
 
 	for(g=0; g<number_generations; g++){
-		printf("Generation #: %d\n",g);
+		//printf("Generation #: %d\n",g);
 		for(i=0;i<cube_size;i++){ //X
 			for(j=0;j<cube_size;j++){ //Y
 				for(k=0;k<cube_size;k++){ //Z
@@ -57,13 +57,13 @@ int main(int argc, char* argv[]){
 					if(M[i][j][k].state == 1){ //live cell
 						if(M[i][j][k].live_neighbours < 2 || M[i][j][k].live_neighbours > 4){ //A live cell with fewer than two live neighbors dies and A live cell with more than four live neighbors dies
 							M[i][j][k].state = 0; //kills cell
-							printf("Killing cell %d,%d,%d\n", i,j,k);
+							//printf("Killing cell %d,%d,%d\n", i,j,k);
 						}//A live cell with two to four live neighbours lives on to the next generation (simply remains 1, no need to check)
 					}else{
 						//A dead cell with two or three live neighbors becomes a live cell
 						if(M[i][j][k].live_neighbours == 2 || M[i][j][k].live_neighbours == 3){
 							M[i][j][k].state = 1; //becomes live cell
-							printf("Reviving cell %d,%d,%d\n", i,j,k);
+							//printf("Reviving cell %d,%d,%d\n", i,j,k);
 						}
 					}
 					M[i][j][k].live_neighbours = 0; //After checking reset live_neighbours for another gen

@@ -25,9 +25,9 @@ using std::string;
 class Cell{
     public:
         /* Attributes */
-        int x;              /**< X coordinate */
-        int y;              /**< Y coordinate */
-        int z;              /**< Z coordinate */
+        int x;                      /**< X coordinate */
+        int y;                      /**< Y coordinate */
+        int z;                      /**< Z coordinate */
         mutable bool state;         /**< Current state of the cell: true for ALIVE, false for DEAD */
         mutable bool next_state;    /**< Next state of the cell */
         /* Methods */
