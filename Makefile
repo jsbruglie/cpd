@@ -1,5 +1,5 @@
-SEQ_3D_DIR = seq_3d
-SEQ_SLOW_DIR = seq_slow
+SEQ_3D_DIR = seq_3d_matrix_swap
+SEQ_SLOW_DIR = seq_sets
 
 all:
 
