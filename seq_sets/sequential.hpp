@@ -66,12 +66,12 @@ bool setContains(int k, std::set<int> grid);
 /* @brief
  *
  */
-void check_dimension(int dim, int i, int j, int k, std::vector<std::vector<std::set<int> > > grid, int &live_neighbours, int cube_size);
+void check_dimension(int dim, int i, int j, int k, std::set<int>*** grid, int &live_neighbours, int cube_size);
 
 /* @brief
  *
  */
-std::vector<Cell> getNeighbours(int x, int y, int z, int cube_size);
+Cell* getNeighbours(int x, int y, int z, int cube_size);
 
 /* @brief
  *
@@ -81,11 +81,19 @@ void parse_args(int argc, char* argv[], string &file, int &generations);
 /* @ brief
  *
  */
-void parse_file(string file, int &cube_size, std::vector<std::vector<std::set<int> > > &graph, std::set<Cell> &cell_set);
+std::set<int>*** parse_file(string file, int &cube_size, std::set<Cell> &cell_set);
+
+/* @ brief
+ *
+ */
+bool setNextState(bool st, std::set<int>*** graph, int cube_size, int x, int y, int z);
+
+/* @ brief
+ *
+ */
+int liveNeighbors(int i, int j, int k, std::set<int>*** graph, int cube_size);
 
 
-bool setNextState(bool st, std::vector<std::vector<std::set<int> > > graph, int cube_size, int x, int y, int z);
-
-int liveNeighbors(int i, int j, int k, std::vector<std::vector<std::set<int> > > graph, int cube_size);
+void printGraph(set<int>*** graph, int cube_size);
 
 #endif
