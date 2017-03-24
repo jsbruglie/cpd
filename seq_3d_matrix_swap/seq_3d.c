@@ -41,10 +41,11 @@ int main(int argc, char* argv[]){
         graph1 = tmp;
     }
 
+    double end = omp_get_wtime();   // Stop Timer
+    
     /* Print the final set of live cells */
     printActive(graph1, cube_size);
 
-    double end = omp_get_wtime();   // Stop Timer
     printf("Total Runtime: %f.\n", end - start);
     
     freeGraph(graph0, cube_size);
@@ -91,7 +92,7 @@ void printActive(bool*** graph, int cube_size){
         for (y = 0; y < cube_size; ++y){
             for (z = 0; z < cube_size; ++z){
                 if (graph[x][y][z])
-                    printf("x: %d y: %d z: %d\n", x,y,z);
+                    printf("x:%d y:%d z:%d\n", x,y,z);
             }
         }
     }

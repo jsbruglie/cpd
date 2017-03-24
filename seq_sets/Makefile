@@ -3,7 +3,6 @@ CXX = g++
 CXXFLAGS = -Wall
 CXXLIBS = -fopenmp
 
-
 all: sequential cleanup  
 
 sequential: $(SEQUENTIAL_OBJECT_FILES)
