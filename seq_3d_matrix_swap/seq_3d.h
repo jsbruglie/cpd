@@ -10,10 +10,20 @@
 #define DEAD 0
 
 typedef char bool;
+
+/* @brief Initializes the graph representation structure
+ *
+ */
 bool*** initGraph(int size);
 
+/* @brief
+ *
+ */
 void printActive(bool*** graph, int cube_size);
 
+/* @brief
+ *
+ */
 void freeGraph(bool*** graph, int size);
 
 /* @brief
@@ -31,7 +41,7 @@ int liveNeighbors(bool*** graph, int cube_size, int x, int y, int z);
  */
 void parse_args(int argc, char* argv[], char** file, int* generations);
 
-/* @ brief
+/* @brief
  *
  */
 bool*** parse_file(char* file, int* cube_size);    

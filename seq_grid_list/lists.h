@@ -17,9 +17,7 @@
 typedef unsigned char bool;
 typedef int coordinate;
 
-/** @brief Structure for storing a node of the graph
- *
- */
+/** @brief Structure for storing a node of the graph */
 typedef struct Graph_Node_Struct{
     coordinate z;                   /**< z coordinate, x and y are implicitly mapped */
     bool state;						/**< State of a node cell (DEAD or ALIVE) */
@@ -27,9 +25,7 @@ typedef struct Graph_Node_Struct{
     struct Graph_Node_Struct* next; /**< Pointer to the next entry in the list */
 }GraphNode;
 
-/** @brief Structure for storing cells 
- *  
- */
+/** @brief Structure for storing cells */
 typedef struct Node_Struct{
     coordinate x;
     coordinate y;
@@ -38,16 +34,15 @@ typedef struct Node_Struct{
     struct Node_Struct* next;
 }Node;
 
-/** @brief List container structure
- */
+/** @brief List container structure */
 typedef struct List_Struct{
     int size;                   /**< Number of elements in list */
     Node* first;                /**< First node of the list */
 }List;
 
-/* NodeGraph Lists -related functions */
+/* NodeGraph Lists related functions */
 
-/** @brief Inserts a node in the list with value z
+/** @brief Inserts a GraphNode in the list with value z
  *
  *  @param first The first node of the list
  *  @param z Value of the node to be inserted
@@ -55,7 +50,7 @@ typedef struct List_Struct{
  */
 GraphNode* graphNodeInsert(GraphNode* first, coordinate z, bool state);
 
-/** @brief Removes a node from the list with value z
+/** @brief Removes a GraphNode from the list with value z
  *
  *  @param first_ptr A pointer to the first node of the list
  *  @param z Value of the node to be removed
@@ -63,87 +58,96 @@ GraphNode* graphNodeInsert(GraphNode* first, coordinate z, bool state);
  */
 void graphNodeRemove(GraphNode** first_ptr, coordinate z);
 
-/** @brief Deletes a list of graph nodes
+/** @brief Deletes a list of GraphNodes
  *
  *  @param first The first node of the list
  *  @return Void.
  */
 void graphNodeDelete(GraphNode* first);
 
-/**
- *  @return Whether the incremented node now has exactly 2 live neighbours.
- *  This is needed to keep track of this cell, as it's state might change 
+/** @brief Inserts a cell if not yet present and increments its number of live nighbours
+ *
+ *  @return Whether the cell was inserted in the graph or not
  */
 bool graphNodeAddNeighbour(GraphNode** first, coordinate z, GraphNode** ptr);
 
-/*
+/** @brief Sorts a GraphNode list by ascending order of coordinate z
  *
+ *  @param first_ptr A pointer to the pointer to the first GraphNode of the list
+ *  @return Void.
  */
 void graphNodeSort(GraphNode** first_ptr);
 
-/* Node Lists-related functions*/
+/* Node Lists related functions*/
 
 /** @brief Creates a list structure
  *
- *  @param 
- *  @return .
+ *  @return The resulting empty list structure, with size 0.
  */
 List* listCreate();
 
-/** @brief 
+/** @brief Returns the Node list of a given List structure
  *
- *  @param 
- *  @return .
+ *  @param list The list structure pointer
+ *  @return A pointer to the Node* list of list.
  */
 Node* listFirst(List* list);
 
-/** @brief 
+/** @brief Inserts a Node* in a given list and updates size
  *
- *  @param 
- *  @return .
+ *  @param list The list we want to insert in
+ *  @param x X coordinate of the cell to be inserted
+ *  @param y Y coordinate of the cell to be inserted
+ *  @param z Z coordinate of the cell to be inserted
+ *  @param ptr The GraphNode* corresponding to the cell to be inserted
+ *  @return Void.
  */
 void listInsert(List* list, coordinate x, coordinate y, coordinate z, GraphNode* ptr);
 
-/** @brief 
+/** @brief Inserts a Node in a Node list
  *
- *  @param 
+ *  @param first A pointer to the first element of the list
+ *  @param x X coordinate
+ *  @param y Y coordinate
+ *  @param z Z coordinate
+ *  @param ptr The GraphNode* corresponding to the cell to be inserted
  *  @return .
  */
 Node* nodeInsert(Node* first, coordinate x, coordinate y, coordinate z, GraphNode* ptr);
 
-/** @brief 
+/** @brief Removes a Node* from a given list structure and updates size
  *
- *  @param 
- *  @return .
+ *  @param x X coordinate
+ *  @param y Y coordinate
+ *  @param z Z coordinate
+ *  @return Void.
  */
 void listRemove(List* list, coordinate x, coordinate y, coordinate z);
 
-/** @brief 
+/** @brief Removes a Node* from a given Node list
  *
- *  @param 
- *  @return .
+ *  @param first_ptr A pointer to the first node of the list
+ *  @param x X coordinate
+ *  @param y Y coordinate
+ *  @param z Z coordinate
+ *  @return Whether the removal was successful or not.
  */
-void nodeRemove(Node** first_ptr, coordinate x, coordinate y, coordinate z);
+bool nodeRemove(Node** first_ptr, coordinate x, coordinate y, coordinate z);
 
-/** @brief 
+/** @brief Deletes a List strucutre
  *
- *  @param 
- *  @return .
+ *  @param list The list to be deleted
+ *  @return Void.
  */
 void listDelete(List* list);
 
-/** @brief 
+/** @brief Removes scheduled entries from a List structure
  *
- *  @param 
- *  @return .
+ *  Removes entries in Node* list with x = REMOVE
+ *
+ *  @param list The list to be cleaned
+ *  @return Void.
  */
 void listCleanup(List* list);
-
-/** @brief 
- *
- *  @param 
- *  @return .
- */
-Node* nodeExchange(Node** obj, Node* newval);
 
 #endif

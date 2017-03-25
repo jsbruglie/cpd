@@ -3,17 +3,6 @@
 /* NodeGraph Lists related functions */
 
 GraphNode* graphNodeInsert(GraphNode* first, coordinate z, bool state){
-    GraphNode* it;
-    /* Search the list for an exisiting item with the same z coordinate */
-    for (it = first; it != NULL; it = it->next){
-        /* If a duplicate is found, don't insert or alter its state */
-        if (it->z == z){
-            /* A dead node in the graph with a non-0 counter is harmless as long as it is not needed for this iteration */
-            /* but if we try to add it to the graph again, it means it WILL indeed be used, so rest the counter. */
-            it->neighbours = 0;
-            return first;
-        }
-    }
 
     GraphNode* new = (GraphNode*) malloc(sizeof(GraphNode));
     if (new == NULL){
@@ -54,27 +43,16 @@ bool graphNodeAddNeighbour(GraphNode** first, coordinate z, GraphNode** ptr){
     for(it = *first; it != NULL; it = it->next){
         if (it->z == z){
             it->neighbours++;
-            if (it->neighbours == 2 && it->state == DEAD){
-                *ptr = it;
-                return true;    
-            } 
-            break;
+            return false;
         }
     }
     
     /* Need to insert the node */
-    GraphNode* new = (GraphNode*) malloc(sizeof(GraphNode));
-    if (new == NULL){
-        fprintf(stderr, "Malloc failed. Memory full");
-        exit(EXIT_FAILURE);
-    }
-    new->z = z;
-    new->state = DEAD;
-    new->neighbours = 1;
-    new->next = *first;
+    GraphNode* new = graphNodeInsert(*first, z, DEAD);
+    new->neighbours++;
+    *ptr = new;
     *first = new;
-
-    return false;
+    return true;
 }
 
 void graphNodeSort(GraphNode** first_ptr){
@@ -137,22 +115,24 @@ Node* nodeInsert(Node* first, coordinate x, coordinate y, coordinate z, GraphNod
 
 void listRemove(List* list, coordinate x, coordinate y, coordinate z){
     if(list != NULL){
-        nodeRemove(&(list->first), x, y, z);
-        list->size--;
+        if(nodeRemove(&(list->first), x, y, z))
+            list->size--;
     }   
 }
 
-void nodeRemove(Node** first_ptr, coordinate x, coordinate y, coordinate z){
+bool nodeRemove(Node** first_ptr, coordinate x, coordinate y, coordinate z){
     Node** cur;
     for (cur = first_ptr; *cur; ){
         Node* entry = *cur;
         if (entry->x == x && entry->y == y && entry->z == z){
             *cur = entry->next;
             free(entry);
+            return true;
         }else{
             cur = &entry->next;
         }
     }
+    return false;
 }
 
 void listDelete(List* list){
@@ -167,20 +147,33 @@ void listDelete(List* list){
 }
 
 void listCleanup(List* list){
+    Node *temp, *prev;
     if (list != NULL){
-        Node* current = list->first;
-        while (current && current->x == REMOVE){
-            free(nodeExchange(&current, current->next));
+        temp = list->first;
+        
+        /* Delete from the beginning */
+        while (temp != NULL && temp->x == REMOVE){
+            list->first = temp->next;   
+            free(temp);                 
+            list->size--;
+            temp = list->first;
         }
-
-        for (current = list->first; current != NULL; current = current->next){
-            while (current->next != NULL && current->next->x == REMOVE){
-                free(nodeExchange(&current->next, current->next->next));
+     
+        /* Delete from the middle */
+        while (temp != NULL){
+            while (temp != NULL && temp->x != REMOVE){
+                prev = temp;
+                temp = temp->next;
             }
+        
+            /* No entries scheduled for removal found */
+            if (temp == NULL) return;
+     
+            prev->next = temp->next;
+            free(temp);
+            list->size--;
+
+            temp = prev->next;
         }
     }
-}
-
-Node* nodeExchange(Node** obj, Node* newval){
-    Node* tmp = *obj; *obj = newval; return tmp;
 }

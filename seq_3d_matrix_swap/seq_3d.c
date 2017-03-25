@@ -44,7 +44,7 @@ int main(int argc, char* argv[]){
     double end = omp_get_wtime();   // Stop Timer
     
     /* Print the final set of live cells */
-    printActive(graph1, cube_size);
+    printActive(graph0, cube_size);
 
     printf("Total Runtime: %f.\n", end - start);
     
