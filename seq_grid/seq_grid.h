@@ -4,36 +4,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <omp.h>
 
-#define ALIVE 1
-#define DEAD 0
 
-typedef char bool;
-bool*** initGraph(int size);
+#include "list.h"
 
-void printActive(bool*** graph, int cube_size);
 
-void freeGraph(bool*** graph, int size);
+void section1(Node**** graph0, Node**** graph1, int cube_size);
 
-/* @brief
- *
- */
-bool setNextState(bool*** graph, int cube_size, int x, int y, int z);
+void section2(Node**** graph0, Node**** graph1, int cube_size);
 
-/* @brief
- *
- */
-int liveNeighbors(bool*** graph, int cube_size, int x, int y, int z);
-
-/* @brief
- *
- */
 void parse_args(int argc, char* argv[], char** file, int* generations);
-
-/* @ brief
- *
- */
-bool*** parse_file(char* file, int* cube_size);    
 
 #endif
