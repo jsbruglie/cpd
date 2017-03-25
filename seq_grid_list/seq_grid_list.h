@@ -15,23 +15,23 @@ typedef unsigned char bool;
 
 /* @brief Notifies the neighbours of (x,y,z) of its aliveness and adds them to list
  *
- *	@param graph The graph representation
- *	@param cube_size The size of the side of the cube that represents the 3D space
- *	@param list The list for keeping track of live cells and respective neighbours
- *	@param x X coordinate
- *	@param y Y coordinate
- *	@param z Z coordinate
+ *  @param graph The graph representation
+ *  @param cube_size The size of the side of the cube that represents the 3D space
+ *  @param list The list for keeping track of live cells and respective neighbours
+ *  @param x X coordinate
+ *  @param y Y coordinate
+ *  @param z Z coordinate
  */
 void visitNeighbours(GraphNode*** graph, int cube_size, List* list, coordinate x, coordinate y, coordinate z);
 
 /* @brief Initializes the graph representation structure
- *	
+ *  
  * @param size The size of the side of the cube that represents the 3D space
  */
 GraphNode*** initGraph(int size);
 
 /* @brief Frees the graph representation from memory
- *	
+ *  
  * @param size The size of the side of the cube that represents the 3D space
  */
 void freeGraph(GraphNode*** graph, int size);
@@ -41,7 +41,7 @@ void freeGraph(GraphNode*** graph, int size);
  * SHOULD NOT BE CALLED DURING THE CALCULATION OF A GENERATION:
  * SORTING WILL BREAK POINTER LOGIC
  *
- * @param graph The graph representation	
+ * @param graph The graph representation    
  * @param size The size of the side of the cube that represents the 3D space
  */
 void printAndSortActive(GraphNode*** graph, int cube_size);
@@ -50,7 +50,7 @@ void printAndSortActive(GraphNode*** graph, int cube_size);
  *
  * @param argc Number of arguments
  * @param argv Argument string
- * @param file Output	
+ * @param file Output   
  */
 void parseArgs(int argc, char* argv[], char** file, int* generations);
 

@@ -11,8 +11,8 @@
 #define ALIVE 1
 #define DEAD 0
 
-#define REMOVE -1	/**< Used to signal that an entry in list should be removed */
-#define UPDATE 1	/**< Used to force a GraphNode insertion to simply update an existing node */
+#define REMOVE -1   /**< Used to signal that an entry in list should be removed */
+#define UPDATE 1    /**< Used to force a GraphNode insertion to simply update an existing node */
 
 typedef unsigned char bool;
 typedef int coordinate;
@@ -20,7 +20,7 @@ typedef int coordinate;
 /** @brief Structure for storing a node of the graph */
 typedef struct Graph_Node_Struct{
     coordinate z;                   /**< z coordinate, x and y are implicitly mapped */
-    bool state;						/**< State of a node cell (DEAD or ALIVE) */
+    bool state;                     /**< State of a node cell (DEAD or ALIVE) */
     unsigned char neighbours;       /**< Neighbour counter */
     struct Graph_Node_Struct* next; /**< Pointer to the next entry in the list */
 }GraphNode;
