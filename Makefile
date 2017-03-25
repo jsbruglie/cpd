@@ -1,33 +1,7 @@
-TEST_OBJECT_FILES = test.o 
-SEQUENTIAL_OBJECT_FILES = sequential.o
-CFLAGS = -ggdb -Wall
-LIBS =
-CC = gcc  
-CXX = g++
-CXXFLAGS = -Wall
-CXXLIBS = -fopenmp
+SEQ_3D_DIR = seq_3d_matrix_swap
+SEQ_SLOW_DIR = seq_sets
 
+all:
 
-all: test sequential cleanup  
-test: $(TEST_OBJECT_FILES) 
-sequential: $(SEQUENTIAL_OBJECT_FILES)
-
-test:
-	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
-	
-sequential:
-	$(CXX) $(CXXFLAGS) $^ $(CXXLIBS) -o $@
-
-test.o sequential.o:
-
-%.o: %.c
-	$(CC) -c $<  
-
-%.o: %.cpp
-	$(CXX) -c $<
-
-cleanup:
-	rm -f *.o
-
-clean:
-	rm -f test sequential *.o *~ 
+	+$(MAKE) -C $(SEQ_3D_DIR)
+	+$(MAKE) -C $(SEQ_SLOW_DIR)
