@@ -1,5 +1,5 @@
 /** @file seq_3d.c
- *  @brief Grid with lists in C
+ *  @brief Grid bruteforce in C
  *  @author Pedro Abreu
  *  @author João Borrego
  *  @author Miguel Cardoso
@@ -47,20 +47,12 @@ int main(int argc, char* argv[]){
                 hinsert = graph0[x][y];
                 insertCell(hinsert,z,ALIVE);
                 hinsert = graph1[x][y];
-                insertCell(hinsert,z,ALIVE);
-                //Add to the LUT
-                
+                insertCell(hinsert,z,ALIVE);            
             }
         }
     }
     fclose(fp);
-    omp_set_num_threads(4);
-
-
-
-
-
-    
+  
     for(g = 0; g < generations; g++){
         start = omp_get_wtime();  // Start Timer
         section1(graph0, graph1, cube_size);
@@ -74,8 +66,8 @@ int main(int argc, char* argv[]){
         graph1 = graph0;
         graph0 = temp;
     }
-   
     
+    //Print the output
     /*
     for(x = 0; x < cube_size; x++){
         for(y = 0; y < cube_size; y++){
@@ -96,65 +88,29 @@ int main(int argc, char* argv[]){
 void section1(Node**** graph0, Node**** graph1, int cube_size){
     Node* it;
     int x,y,z;
-    #pragma omp parallel for private(x,y,z)
     for(x=0; x < cube_size; x++){
         for(y=0; y < cube_size;y++){
-            #pragma omp critical 
-            {
-                //printf("%d\n", omp_get_thread_num());
-                for(it = *(graph0[x][y]); it != NULL && it->status == ALIVE; it = it->next){
-                    z = it->z;
-                    int z1, z2;
-                    z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
-                        /* Fork a team of threads giving them their own copies of variables */
-                    //int tid;
-                    /*#pragma omp parallel private(tid) firstprivate(x,y,z)
-                    {
-
-                        tid = omp_get_thread_num();
-                        //printf("Hello World from thread = %d\n", tid);
-                        if(tid == 0){
-                            int x1 = (x+1)%cube_size;
-                            Node ** h = graph1[x1][y];
-                            insertCell(h, z, DEAD);
-                        }
-                        else if(tid == 1){
-                            int y1 = (y+1)%cube_size;
-                            Node ** h = graph1[x][y1];
-                            insertCell(h, z, DEAD); 
-                        }
-                        else if(tid == 2){
-                            int x2 = (x-1) < 0 ? (cube_size-1) : (x-1);
-                            Node ** h = graph1[x2][y];
-                            insertCell(h, z, DEAD);
-                        }
-                        else if(tid == 3){
-                            int y2 = (y-1) < 0 ? (cube_size-1) : (y-1);
-                            Node ** h = graph1[x][y2];
-                            insertCell(h, z, DEAD);
-                        }
-
-                    }*/
-
-                    int x1 = (x+1)%cube_size;
-                    Node ** h = graph1[x1][y];
-                    insertCell(h, z, DEAD);
-                    int y1 = (y+1)%cube_size;
-                    h = graph1[x][y1];
-                    insertCell(h, z, DEAD);
-                    int x2 = (x-1) < 0 ? (cube_size-1) : (x-1);
-                    h = graph1[x2][y];
-                    insertCell(h, z, DEAD);
-                    int y2 = (y-1) < 0 ? (cube_size-1) : (y-1);
-                    h = graph1[x][y2];
-                    insertCell(h, z, DEAD);
-                    Node** hz = graph1[x][y];
-                    insertCell(hz, z1, DEAD);
-                    insertCell(hz, z2, DEAD);
-                    //< it->status = DEAD;
-                }
-            }
-            
+            for(it = *(graph0[x][y]); it != NULL && it->status == ALIVE; it = it->next){
+                z = it->z;
+                int z1, z2;
+                z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
+                int x1 = (x+1)%cube_size;
+                Node ** h = graph1[x1][y];
+                insertCell(h, z, DEAD);
+                int y1 = (y+1)%cube_size;
+                h = graph1[x][y1];
+                insertCell(h, z, DEAD);
+                int x2 = (x-1) < 0 ? (cube_size-1) : (x-1);
+                h = graph1[x2][y];
+                insertCell(h, z, DEAD);
+                int y2 = (y-1) < 0 ? (cube_size-1) : (y-1);
+                h = graph1[x][y2];
+                insertCell(h, z, DEAD);
+                Node** hz = graph1[x][y];
+                insertCell(hz, z1, DEAD);
+                insertCell(hz, z2, DEAD);
+                //< it->status = DEAD;
+            }  
         }
     }
 }
@@ -163,27 +119,22 @@ void section1(Node**** graph0, Node**** graph1, int cube_size){
 void section2(Node**** graph0, Node**** graph1, int cube_size){
     Node* it;
     int x,y;
-    #pragma omp parallel for private(x,y,it)
+
     for(x=0; x<cube_size;x++){
         for(y=0; y<cube_size; y++){
             for(it = *(graph1[x][y]); it != NULL; it = it->next){
-                #pragma omp critical
-                {
-                    int s = it->status;
-                    int c = it->counter;
-                    if(s == ALIVE){
-                        if(c < 2 || c > 4){
-                            it->status = DEAD;
-                        }
-                    }else{
-                        if(c == 2 || c == 3){
-                            it->status = ALIVE;
-                            //Add to the LUT
-                        }
+                int s = it->status;
+                int c = it->counter;
+                if(s == ALIVE){
+                    if(c < 2 || c > 4){
+                        it->status = DEAD;
                     }
-                    it->counter = 0; 
+                }else{
+                    if(c == 2 || c == 3){
+                        it->status = ALIVE;
+                    }
                 }
-            
+                it->counter = 0; 
             }
         }
     }

@@ -2,9 +2,6 @@
 
 /****************************************************************************/
 void insertCell(Node** head, int z, int status){ //ordered list insert
-    
-    //Node** head = graph[x][y];
-
     if(*head == NULL){
         Node* new = createNode(z,status);
         new->next = NULL;
