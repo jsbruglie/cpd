@@ -1,6 +1,6 @@
 OBJECT_FILES = seq_grid_list.o lists.o
-CFLAGS = -ggdb -Wall -fopenmp -g -pedantic
-LIBS =
+CFLAGS = -ggdb -Wall
+LIBS = -fopenmp
 CC = gcc  
 
 all: seq_grid_list cleanup
