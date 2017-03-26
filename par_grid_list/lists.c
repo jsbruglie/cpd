@@ -2,6 +2,7 @@
 
 /* NodeGraph Lists related functions */
 
+/**************************************************************************/
 GraphNode* graphNodeInsert(GraphNode* first, coordinate z, bool state){
 
     GraphNode* new = (GraphNode*) malloc(sizeof(GraphNode));
@@ -16,6 +17,7 @@ GraphNode* graphNodeInsert(GraphNode* first, coordinate z, bool state){
     return new;
 }
 
+/**************************************************************************/
 void graphNodeRemove(GraphNode** first_ptr, coordinate z, omp_lock_t* lock_ptr){
     GraphNode** cur;
     omp_set_lock(lock_ptr);
@@ -31,6 +33,7 @@ void graphNodeRemove(GraphNode** first_ptr, coordinate z, omp_lock_t* lock_ptr){
     omp_unset_lock(lock_ptr);
 }
 
+/**************************************************************************/
 void graphNodeDelete(GraphNode* first){
     GraphNode* it, *next;
     for(it = first; it != NULL; it = next){
@@ -39,6 +42,7 @@ void graphNodeDelete(GraphNode* first){
     }
 }
 
+/**************************************************************************/
 bool graphNodeAddNeighbour(GraphNode** first, coordinate z, GraphNode** ptr, omp_lock_t* lock_ptr){
     GraphNode* it;
     omp_set_lock(lock_ptr);
@@ -62,6 +66,7 @@ bool graphNodeAddNeighbour(GraphNode** first, coordinate z, GraphNode** ptr, omp
     return true;
 }
 
+/**************************************************************************/
 void graphNodeSort(GraphNode** first_ptr){
     GraphNode* i, *j;
     if (*first_ptr != NULL){
@@ -79,7 +84,7 @@ void graphNodeSort(GraphNode** first_ptr){
 }
 
 /* Node Lists related functions*/
-
+/**************************************************************************/
 List* listCreate(){
     List* list = (List*) malloc(sizeof(List));
     if (list == NULL){
@@ -91,6 +96,7 @@ List* listCreate(){
     return list;
 }
 
+/**************************************************************************/
 Node* listFirst(List* list){
     if (list != NULL){
         return list->first;
@@ -98,7 +104,7 @@ Node* listFirst(List* list){
     return NULL;
 }
 
-
+/**************************************************************************/
 void listInsert(List* list, coordinate x, coordinate y, coordinate z, GraphNode* ptr){
     if(list != NULL){
         list->first = nodeInsert(list->first, x, y, z, ptr);
@@ -106,6 +112,7 @@ void listInsert(List* list, coordinate x, coordinate y, coordinate z, GraphNode*
     }
 }
 
+/**************************************************************************/
 void listInsertLock(List* list, coordinate x, coordinate y, coordinate z, GraphNode* ptr, omp_lock_t* lock_ptr){
     if(list != NULL){
         omp_set_lock(lock_ptr);
@@ -115,6 +122,7 @@ void listInsertLock(List* list, coordinate x, coordinate y, coordinate z, GraphN
     }
 }
 
+/**************************************************************************/
 Node* nodeInsert(Node* first, coordinate x, coordinate y, coordinate z, GraphNode* ptr){
     Node* new = (Node*) malloc(sizeof(Node));
     if (new == NULL){
@@ -129,6 +137,7 @@ Node* nodeInsert(Node* first, coordinate x, coordinate y, coordinate z, GraphNod
     return new;
 }
 
+/**************************************************************************/
 void listRemove(List* list, coordinate x, coordinate y, coordinate z){
     if(list != NULL){
         if(nodeRemove(&(list->first), x, y, z))
@@ -136,6 +145,7 @@ void listRemove(List* list, coordinate x, coordinate y, coordinate z){
     }   
 }
 
+/**************************************************************************/
 bool nodeRemove(Node** first_ptr, coordinate x, coordinate y, coordinate z){
     Node** cur;
     for (cur = first_ptr; *cur; ){
@@ -151,6 +161,7 @@ bool nodeRemove(Node** first_ptr, coordinate x, coordinate y, coordinate z){
     return false;
 }
 
+/**************************************************************************/
 void listDelete(List* list){
     Node* it, *next;
     if (list != NULL){
@@ -162,6 +173,7 @@ void listDelete(List* list){
     }    
 }
 
+/**************************************************************************/
 void listCleanup(List* list){
     Node *temp, *prev;
     if (list != NULL){

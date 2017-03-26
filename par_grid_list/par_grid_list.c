@@ -59,42 +59,51 @@ int main(int argc, char* argv[]){
         for (it = listFirst(update); it != NULL; it = it->next){
             vector[i++] = it;
         }
-
+        Node** proccessed;
         /* For each live node, inform its neighbors */
-        #pragma omp parallel for 
-        for (i = 0; i < size; i++){
-            visitNeighbours(graph, graph_lock, cube_size, update, &list_lock, vector[i]->x, vector[i]->y, vector[i]->z);
-        }
-        
-        /* Convert list to vector */
-        i = 0;
-        size = update->size;
-        Node** proccessed = (Node**) malloc(sizeof(Node*) * size);
-        for (it = listFirst(update); it != NULL; it = it->next){
-            proccessed[i++] = it;
-        }
+        #pragma omp parallel
+        {
+            #pragma omp for
+            for (i = 0; i < size; i++){
+                //printf("Neighbours processing by thread: %d\n", omp_get_thread_num());
+                visitNeighbours(graph, graph_lock, cube_size, update, &list_lock, vector[i]->x, vector[i]->y, vector[i]->z);
+            }
+            
+            /* Convert list to vector */
+            #pragma omp single
+            {
+                i = 0;
+                size = update->size;
+                proccessed = (Node**) malloc(sizeof(Node*) * size);
+                for (it = listFirst(update); it != NULL; it = it->next){
+                    proccessed[i++] = it;
+                }                
+            }
 
-        /* Update graph and update set */         
-        #pragma omp parallel for
-        for (i = 0; i < size; i++){
-            Node* it = proccessed[i];
-            unsigned char live_neighbours = it->ptr->neighbours;
-            it->ptr->neighbours = 0;
-            if(it->ptr->state == ALIVE){
-                if(live_neighbours < 2 || live_neighbours > 4){
-                    graphNodeRemove(&(graph[it->x][it->y]), it->z, &(graph_lock[it->x][it->y]));
-                    it->x = REMOVE;
-                }
-            }else{
-                if(live_neighbours == 2 || live_neighbours == 3){
-                    it->ptr->state = ALIVE; 
-                }
-                else{
-                    graphNodeRemove(&(graph[it->x][it->y]), it->z, &(graph_lock[it->x][it->y]));
-                    it->x = REMOVE;
+            /* Update graph and update set */         
+            #pragma omp for
+            for (i = 0; i < size; i++){
+                //printf("Update graph processing by thread: %d\n", omp_get_thread_num());
+                Node* it = proccessed[i];
+                unsigned char live_neighbours = it->ptr->neighbours;
+                it->ptr->neighbours = 0;
+                if(it->ptr->state == ALIVE){
+                    if(live_neighbours < 2 || live_neighbours > 4){
+                        graphNodeRemove(&(graph[it->x][it->y]), it->z, &(graph_lock[it->x][it->y]));
+                        it->x = REMOVE;
+                    }
+                }else{
+                    if(live_neighbours == 2 || live_neighbours == 3){
+                        it->ptr->state = ALIVE; 
+                    }
+                    else{
+                        graphNodeRemove(&(graph[it->x][it->y]), it->z, &(graph_lock[it->x][it->y]));
+                        it->x = REMOVE;
+                    }
                 }
             }
         }
+
 
         /* Clean dead cells from the set */
         listCleanup(update);
@@ -107,7 +116,7 @@ int main(int argc, char* argv[]){
     /* Print the final set of live cells */
     printAndSortActive(graph, cube_size);
     printf("Total Runtime: %f.\n", end - start);
-    
+    printToFile(graph, cube_size, generations, file);
     /* Free resources */
     freeGraph(graph, cube_size);
     listDelete(update);
@@ -122,6 +131,7 @@ int main(int argc, char* argv[]){
     return 0;
 }
 
+/**************************************************************************/
 void visitNeighbours(GraphNode*** graph, omp_lock_t** graph_lock, int cube_size,
                         List* list, omp_lock_t* list_lock,
                         coordinate x, coordinate y, coordinate z){
@@ -152,6 +162,7 @@ void visitNeighbours(GraphNode*** graph, omp_lock_t** graph_lock, int cube_size,
     }
 }
 
+/**************************************************************************/
 GraphNode*** initGraph(int size){
 
     int i,j;
@@ -166,6 +177,7 @@ GraphNode*** initGraph(int size){
     return graph;
 }
 
+/**************************************************************************/
 void freeGraph(GraphNode*** graph, int size){
 
     int i, j;
@@ -180,6 +192,7 @@ void freeGraph(GraphNode*** graph, int size){
     }
 }
 
+/**************************************************************************/
 void printAndSortActive(GraphNode*** graph, int cube_size){
     int x,y;
     GraphNode* it;
@@ -195,6 +208,7 @@ void printAndSortActive(GraphNode*** graph, int cube_size){
     }
 }
 
+/**************************************************************************/
 void parseArgs(int argc, char* argv[], char** file, int* generations){
     if (argc == 3){
         char* file_name = malloc(sizeof(char) * (strlen(argv[1]) + 1));
@@ -209,6 +223,7 @@ void parseArgs(int argc, char* argv[], char** file, int* generations){
     exit(EXIT_FAILURE);
 }
 
+/**************************************************************************/
 GraphNode*** parseFile(char* file, List* list, int* cube_size){
     
     int first = 0;
@@ -234,6 +249,35 @@ GraphNode*** parseFile(char* file, List* list, int* cube_size){
 
     fclose(fp);
     return graph;
+}
+
+/**************************************************************************/
+void printToFile(GraphNode*** graph, int cube_size, int generations, char* file){
+    char base_name[255];
+    int n = strstr(file,"in") - file;
+    strncpy(base_name, file, n);
+    printf("%s\n", base_name);
+    const char separator = '/';
+    char * const sep_at = strrchr(base_name, separator);
+    *sep_at = '\0';
+    char* name = sep_at + 1;
+    char gen_str[255];
+    sprintf(gen_str, "%d", generations);
+    strcat(name, gen_str);
+    strcat(name, ".out");
+    printf("%s\n", name);
+    FILE* output_fd = fopen(name, "w");
+    fprintf(output_fd, "%d\n", cube_size);
+    int x,y;
+    GraphNode* it;
+    for (x = 0; x < cube_size; ++x){
+        for (y = 0; y < cube_size; ++y){
+            for (it = graph[x][y]; it != NULL; it = it->next){    
+                /* At the end of each generation, the graph is guranteed to only have live cells */
+                fprintf(output_fd, "%d %d %d\n", x, y, it->z);
+            }
+        }
+    }
 }
 
 

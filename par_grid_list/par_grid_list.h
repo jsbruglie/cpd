@@ -63,5 +63,6 @@ void parseArgs(int argc, char* argv[], char** file, int* generations);
  *  @param cube_size The size of the side of the cube that represents the 3D space
  */
 GraphNode*** parseFile(char* file, List* list, int* cube_size);    
+void printToFile(GraphNode*** graph, int cube_size, int generations, char* file);
 
 #endif
