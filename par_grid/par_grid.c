@@ -5,31 +5,31 @@
  *  @author Miguel Cardoso
  */
 
-#include "seq_grid.h"
+#include "par_grid.h"
 #include <omp.h>
 
 #define BUFFER_SIZE 100
 
 int main(int argc, char* argv[]){
-
+    omp_set_num_threads(4);
     /**************************************************************************/
 	char* file;             /**< Input data file name */
     int generations = 0, g;    /**< Number of generations to proccess */    
     parse_args(argc, argv, &file, &generations);
     printf("ARGS: file: %s generations: %d.\n", file, generations);
     int cube_size = 0;      /**< Size of the 3D space */
-    double start,end, s, e, t; //Time measuring
+    double start,end,s,e,t; //Time measuring
     /**************************************************************************/
 
     Node**** graph0;           /**< The graph representation */
     Node**** graph1;           /**< The graph representation for next gen */
     Node**** temp;             /**< For swapping */
 
+    /*Parsing files*/
     int first = 0;
     char line[BUFFER_SIZE];
     int x, y, z;    //Coordinates
     FILE* fp = fopen(file, "r");
-
     Node** hinsert;
     if(fp == NULL){
         printf("Incorrect file or path\n");
@@ -52,24 +52,36 @@ int main(int argc, char* argv[]){
         }
     }
     fclose(fp);
-  
+
+    omp_lock_t** graph0_lock = (omp_lock_t**)malloc(cube_size * sizeof(omp_lock_t*));
+    omp_lock_t** graph1_lock = (omp_lock_t**)malloc(cube_size * sizeof(omp_lock_t*));
+    for(x = 0; x < cube_size; x++){
+        graph0_lock[x] = (omp_lock_t*) malloc(cube_size * sizeof(omp_lock_t));
+        graph1_lock[x] = (omp_lock_t*) malloc(cube_size * sizeof(omp_lock_t));
+        for(y = 0; y < cube_size; y++){
+            omp_init_lock(&(graph0_lock[x][y]));
+            omp_init_lock(&(graph1_lock[x][y]));
+        }
+    }
+
+
     for(g = 0; g < generations; g++){
         s = omp_get_wtime();
         start = omp_get_wtime();  // Start Timer
-        section1(graph0, graph1, cube_size);
+        visitNeighbours(graph0, graph1, cube_size, graph0_lock, graph1_lock);
         end = omp_get_wtime();  // End Timer
-        printf("Section 1: %f.\n", end - start);
+        printf("VisitNeighbours time: %f.\n", end - start);
         start = omp_get_wtime();  // Start Timer
-        section2(graph0, graph1, cube_size);
+        upgradeGraph(graph0, graph1, cube_size, graph1_lock);
         end = omp_get_wtime();  // End Timer
-        printf("Section 2: %f.\n", end - start);
+        printf("UpgradeGraph time: %f.\n", end - start);
         temp = graph1;
         graph1 = graph0;
         graph0 = temp;
         e = omp_get_wtime();
         t+=(e-s);
     }
-    printf("Total time %f\n", t);
+    
     //Print the output
     /*
     for(x = 0; x < cube_size; x++){
@@ -82,49 +94,80 @@ int main(int argc, char* argv[]){
             }
         }
     }*/
-
+    printf("Total time %f\n", t);
+    for(x = 0; x < cube_size; x++){
+        for(y=0; y<cube_size; y++){
+            omp_destroy_lock(&(graph0_lock[x][y]));
+            omp_destroy_lock(&(graph1_lock[x][y]));
+        }
+    }
     exit(EXIT_SUCCESS);
 
 }
 
 /****************************************************************************/
-void section1(Node**** graph0, Node**** graph1, int cube_size){
+void visitNeighbours(Node**** graph0, Node**** graph1, int cube_size, omp_lock_t** graph0_lock, omp_lock_t** graph1_lock ){
+    //printf("Threads %d\n", omp_get_num_threads());
     Node* it;
     int x,y,z;
+    //#pragma omp parallel for private(y)
     for(x=0; x < cube_size; x++){
         for(y=0; y < cube_size;y++){
+            //printf("Visit Neihbours Thread %d\n", omp_get_thread_num());
+            //omp_set_lock(&graph0_lock[x][y]);
             for(it = *(graph0[x][y]); it != NULL && it->status == ALIVE; it = it->next){
                 z = it->z;
                 int z1, z2;
                 z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
                 int x1 = (x+1)%cube_size;
-                Node ** h = graph1[x1][y];
-                insertCell(h, z, DEAD);
                 int y1 = (y+1)%cube_size;
-                h = graph1[x][y1];
-                insertCell(h, z, DEAD);
                 int x2 = (x-1) < 0 ? (cube_size-1) : (x-1);
-                h = graph1[x2][y];
-                insertCell(h, z, DEAD);
                 int y2 = (y-1) < 0 ? (cube_size-1) : (y-1);
-                h = graph1[x][y2];
-                insertCell(h, z, DEAD);
-                Node** hz = graph1[x][y];
-                insertCell(hz, z1, DEAD);
-                insertCell(hz, z2, DEAD);
+
+                //omp_set_lock(&graph1_lock[x1][y]);
+                    Node ** h = graph1[x1][y];
+                    insertCell(h, z, DEAD);
+                //omp_unset_lock(&graph1_lock[x1][y]);
+
+                //omp_set_lock(&graph1_lock[x][y1]);
+                    h = graph1[x][y1];
+                    insertCell(h, z, DEAD);
+                //omp_unset_lock(&graph1_lock[x][y1]);
+
+                //omp_set_lock(&graph1_lock[x2][y]);
+                    h = graph1[x2][y];
+                    insertCell(h, z, DEAD);
+                //omp_set_lock(&graph1_lock[x2][y]);
+
+                //omp_set_lock(&graph1_lock[x][y2]);
+                    h = graph1[x][y2];
+                    insertCell(h, z, DEAD);
+                //omp_set_lock(&graph1_lock[x][y2]);
+
+                //omp_set_lock(&graph1_lock[x][y]);
+                    Node** hz = graph1[x][y];
+                    insertCell(hz, z1, DEAD);
+                    insertCell(hz, z2, DEAD);
+                //omp_set_lock(&graph1_lock[x][y]);
+
                 //< it->status = DEAD;
-            }  
+            } 
+            //omp_unset_lock(&graph0_lock[x][y]);
         }
     }
 }
 
 /****************************************************************************/
-void section2(Node**** graph0, Node**** graph1, int cube_size){
-    Node* it;
-    int x,y;
+void upgradeGraph(Node**** graph0, Node**** graph1, int cube_size, omp_lock_t** graph1_lock){
 
+    int x,y;
+    #pragma omp parallel for private(x,y)
     for(x=0; x<cube_size;x++){
         for(y=0; y<cube_size; y++){
+            //printf("%d\n", omp_get_thread_num());
+            //printf("UpgradeGraph Thread %d\n", omp_get_thread_num());
+            omp_set_lock(&graph1_lock[x][y]);
+            Node* it;
             for(it = *(graph1[x][y]); it != NULL; it = it->next){
                 int s = it->status;
                 int c = it->counter;
@@ -139,6 +182,7 @@ void section2(Node**** graph0, Node**** graph1, int cube_size){
                 }
                 it->counter = 0; 
             }
+            omp_unset_lock(&graph1_lock[x][y]);
         }
     }
 }
