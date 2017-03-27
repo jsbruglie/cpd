@@ -22,7 +22,7 @@ typedef unsigned char bool;
  *  @param y Y coordinate
  *  @param z Z coordinate
  */
-void visitNeighbours(GraphNode*** graph, int cube_size, coordinate x, coordinate y, coordinate z);
+void visitNeighbours(GraphNode*** graph, omp_lock_t** graph_lock, int cube_size, coordinate x, coordinate y, coordinate z);
 
 /** @brief Initializes the graph representation structure
  *  

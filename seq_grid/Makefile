@@ -1,14 +1,14 @@
-OBJECT_FILES = seq_grid.c list.o 
-CFLAGS = -ggdb -Wall 
-LIBS = -fopenmp
-CC = gcc  
+OBJECT_FILES = seq_grid.o lists.o
+CFLAGS = -ggdb -Wall
+LIBS =
+CC = gcc -fopenmp  
 
 all: seq_grid cleanup
 
 seq_grid: $(OBJECT_FILES)
 
 seq_grid:
-	$(CC) $(CFLAGS) -o $@ $(LIBS) $^ 
+	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
 	
 seq_grid.o:
 
