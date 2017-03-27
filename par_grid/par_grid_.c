@@ -5,7 +5,7 @@
  *  @author Miguel Cardoso
  */
 
-#include "seq_grid.h"
+#include "par_grid_.h"
 
 int main(int argc, char* argv[]){
 
@@ -14,6 +14,9 @@ int main(int argc, char* argv[]){
     int cube_size = 0;      /**< Size of the 3D space */
 
     GraphNode*** graph;     /**< Graph representation - 2D array of lists */
+
+    /* Lock variables */
+    omp_lock_t** graph_lock;
 
     int g, i, j;
     GraphNode* it;
@@ -25,37 +28,51 @@ int main(int argc, char* argv[]){
     double start = omp_get_wtime();  // Start Timer
     graph = parseFile(file, &cube_size);
 
+    /* Initialize lock variables */
+    graph_lock = (omp_lock_t**)malloc(cube_size * sizeof(omp_lock_t*));
+    for(i = 0; i < cube_size; i++){
+        graph_lock[i] = (omp_lock_t*) malloc(cube_size * sizeof(omp_lock_t));
+        for(j = 0; j < cube_size; j++){
+            omp_init_lock(&(graph_lock[i][j]));
+        }
+    }
+
     for(g = 1; g <= generations; g++){
         
-        /* First passage in the graph - notify neighbours */
-        for(i = 0; i < cube_size; i++){
-            for(j = 0; j < cube_size; j++){
-                for(it = graph[i][j]; it != NULL; it = it->next){
-                    if(it->state == ALIVE)
-                        visitNeighbours(graph, cube_size, i, j, it->z);
+        #pragma omp parallel
+        {
+            /* First passage in the graph - notify neighbours */
+            #pragma omp for private(j, it)   
+            for(i = 0; i < cube_size; i++){
+                for(j = 0; j < cube_size; j++){
+                    for(it = graph[i][j]; it != NULL; it = it->next){
+                        if(it->state == ALIVE)
+                            visitNeighbours(graph, graph_lock, cube_size, i, j, it->z);
+                    }
                 }
             }
-        }
-        /* Second passage in the graph - decide next state */
-        for(i = 0; i < cube_size; i++){
-            for(j = 0; j < cube_size; j++){
-                for (it = graph[i][j]; it != NULL; it = it->next){
-                    live_neighbours = it->neighbours;
-                    it->neighbours = 0;
-                    if(it->state == ALIVE){
-                        if(live_neighbours < 2 || live_neighbours > 4){
-                            it->state = DEAD;
-                        }  
-                    }else{
-                        if(live_neighbours == 2 || live_neighbours == 3){
-                            it->state = ALIVE; 
+            /* Second passage in the graph - decide next state */
+            #pragma omp for private(j, it, live_neighbours)
+            for(i = 0; i < cube_size; i++){
+                for(j = 0; j < cube_size; j++){
+                    for (it = graph[i][j]; it != NULL; it = it->next){
+                        live_neighbours = it->neighbours;
+                        it->neighbours = 0;
+                        if(it->state == ALIVE){
+                            if(live_neighbours < 2 || live_neighbours > 4){
+                                it->state = DEAD;
+                            }  
+                        }else{
+                            if(live_neighbours == 2 || live_neighbours == 3){
+                                it->state = ALIVE; 
+                            }
                         }
                     }
                 }
             }
+            /* Remove dead nodes from the graph once in a while (like g%5) */
+            // TODO
         }
-        /* Remove dead nodes from the graph once in a while (like g%5) */
-        // TODO
     }
 
     double end = omp_get_wtime();   // Stop Timer
@@ -65,11 +82,18 @@ int main(int argc, char* argv[]){
 
     printf("Total Runtime: %f.\n", end - start);
 
+    for(i = 0; i < cube_size; i++){
+        for(j=0; j<cube_size; j++){
+            omp_destroy_lock(&(graph_lock[i][j]));
+        }
+        free(graph_lock[i]);
+    }
+    free(graph_lock);
     freeGraph(graph, cube_size);
     free(file);
 }
 
-void visitNeighbours(GraphNode*** graph, int cube_size, coordinate x, coordinate y, coordinate z){
+void visitNeighbours(GraphNode*** graph, omp_lock_t** graph_lock, int cube_size, coordinate x, coordinate y, coordinate z){
 
     GraphNode* ptr;
     coordinate x1, x2, y1, y2, z1, z2;
@@ -77,12 +101,12 @@ void visitNeighbours(GraphNode*** graph, int cube_size, coordinate x, coordinate
     y1 = (y+1)%cube_size; y2 = (y-1) < 0 ? (cube_size-1) : (y-1);
     z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
     /* If a cell is visited for the first time, add it to the update list, for fast access */
-    graphNodeAddNeighbour(&(graph[x1][y]), z);
-    graphNodeAddNeighbour(&(graph[x2][y]), z);
-    graphNodeAddNeighbour(&(graph[x][y1]), z);
-    graphNodeAddNeighbour(&(graph[x][y2]), z);
-    graphNodeAddNeighbour(&(graph[x][y]), z1);
-    graphNodeAddNeighbour(&(graph[x][y]), z2);
+    graphNodeAddNeighbour(&(graph[x1][y]), z, &(graph_lock[x1][y]));
+    graphNodeAddNeighbour(&(graph[x2][y]), z, &(graph_lock[x2][y]));
+    graphNodeAddNeighbour(&(graph[x][y1]), z, &(graph_lock[x][y1]));
+    graphNodeAddNeighbour(&(graph[x][y2]), z, &(graph_lock[x][y2]));
+    graphNodeAddNeighbour(&(graph[x][y]), z1, &(graph_lock[x][y]));
+    graphNodeAddNeighbour(&(graph[x][y]), z2, &(graph_lock[x][y]));
 }
 
 GraphNode*** initGraph(int size){

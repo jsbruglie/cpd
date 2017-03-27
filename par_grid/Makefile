@@ -1,16 +1,16 @@
-OBJECT_FILES = seq_grid.o lists.o
+OBJECT_FILES = par_grid_.o lists.o
 CFLAGS = -ggdb -Wall
 LIBS =
 CC = gcc -fopenmp  
 
-all: seq_grid cleanup
+all: par_grid_ cleanup
 
-seq_grid: $(OBJECT_FILES)
+par_grid_: $(OBJECT_FILES)
 
-seq_grid:
+par_grid_:
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
 	
-seq_grid.o:
+par_grid_.o:
 
 %.o: %.c
 	$(CC) -c $<  
@@ -19,4 +19,4 @@ cleanup:
 	rm -f *.o
 
 clean:
-	rm -f seq_grid *.o *~ 
+	rm -f par_grid_ *.o *~ 
