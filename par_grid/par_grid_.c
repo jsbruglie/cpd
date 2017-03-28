@@ -7,7 +7,11 @@
 
 #include "par_grid_.h"
 
+
+
 int main(int argc, char* argv[]){
+
+    omp_set_num_threads(NUM_THREADS); /**< Set number of threads*/
 
     char* file;             /**< Input data file name */
     int generations = 0;    /**< Number of generations to proccess */
@@ -25,6 +29,8 @@ int main(int argc, char* argv[]){
     parseArgs(argc, argv, &file, &generations);
     //printf("ARGS: file: %s generations: %d.\n", file, generations);
 
+    
+    
     double start = omp_get_wtime();  // Start Timer
     graph = parseFile(file, &cube_size);
 
@@ -42,7 +48,7 @@ int main(int argc, char* argv[]){
         #pragma omp parallel
         {
             /* First passage in the graph - notify neighbours */
-            #pragma omp for private(j, it)   
+            #pragma omp for private(i, j, it)   
             for(i = 0; i < cube_size; i++){
                 for(j = 0; j < cube_size; j++){
                     for(it = graph[i][j]; it != NULL; it = it->next){
@@ -52,7 +58,7 @@ int main(int argc, char* argv[]){
                 }
             }
             /* Second passage in the graph - decide next state */
-            #pragma omp for private(j, it, live_neighbours)
+            #pragma omp for private(i, j, it, live_neighbours)
             for(i = 0; i < cube_size; i++){
                 for(j = 0; j < cube_size; j++){
                     for (it = graph[i][j]; it != NULL; it = it->next){
@@ -71,9 +77,17 @@ int main(int argc, char* argv[]){
                 }
             }
             /* Remove dead nodes from the graph once in a while (like g%5) */
-            // TODO
-        }
-    }
+            if(g%REMOVAL_PERIOD == 0){
+                #pragma omp for private(i, j)
+                for(i = 0; i < cube_size; i++){
+                    for(j = 0; j < cube_size; j++){
+                        GraphNode ** list = &graph[i][j];
+                        graphListCleanup(list);
+                    }
+                }
+            }
+        }/*pragma end*/
+    } /*generations loop end*/
 
     double end = omp_get_wtime();   // Stop Timer
 
@@ -169,9 +183,15 @@ void parseArgs(int argc, char* argv[], char** file, int* generations){
 GraphNode*** parseFile(char* file, int* cube_size){
     
     int first = 0;
-    char line[100];
+    char line[BUFFER_SIZE];
     int x, y, z;
     FILE* fp = fopen(file, "r");
+    if(fp == NULL){
+        fprintf(stderr, "Please input a valid file name\n");
+        exit(EXIT_FAILURE);
+    }
+
+
     GraphNode*** graph;
 
     while(fgets(line, sizeof(line), fp)){

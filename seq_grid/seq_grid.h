@@ -11,6 +11,9 @@
 #define ALIVE 1
 #define DEAD 0
 
+#define REMOVAL_PERIOD 5 /**< Number of generations until you cleanup the dead nodes from graph */
+#define BUFFER_SIZE 100
+
 typedef unsigned char bool;
 
 /** @brief Notifies the neighbours of (x,y,z) of its aliveness and adds them to list

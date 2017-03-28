@@ -72,3 +72,31 @@ void graphNodeSort(GraphNode** first_ptr){
         }
     }
 }
+
+void graphListCleanup(GraphNode** head){
+    GraphNode *temp, *prev;
+    if(*head != NULL){
+        temp = *head;
+        /* Delete from the beginning */
+        while(temp != NULL && temp->state == DEAD){
+            *head = temp->next;
+            free(temp);
+            temp = *head;
+        }
+        /*Delete from the middle*/
+        while(temp != NULL){
+            while (temp != NULL && temp->state != DEAD){
+                prev = temp;
+                temp = temp->next;
+            }
+            if(temp == NULL)
+                return;
+
+            prev->next = temp->next;
+            free(temp);
+            temp = prev->next;
+        }
+    }
+    
+}
+
