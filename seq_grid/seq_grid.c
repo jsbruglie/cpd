@@ -56,6 +56,14 @@ int main(int argc, char* argv[]){
         }
         /* Remove dead nodes from the graph once in a while (like g%5) */
         // TODO
+        if(g%REMOVAL_PERIOD == 0){
+            for(i = 0; i < cube_size; i++){
+                for(j = 0; j < cube_size; j++){
+                    GraphNode ** list = &graph[i][j];
+                    graphListCleanup(list);
+                }
+            }
+        }
     }
 
     double end = omp_get_wtime();   // Stop Timer
@@ -145,9 +153,13 @@ void parseArgs(int argc, char* argv[], char** file, int* generations){
 GraphNode*** parseFile(char* file, int* cube_size){
     
     int first = 0;
-    char line[100];
+    char line[BUFFER_SIZE];
     int x, y, z;
     FILE* fp = fopen(file, "r");
+    if(fp == NULL){
+        fprintf(stderr, "Please input a valid file name\n");
+        exit(EXIT_FAILURE);
+    }
     GraphNode*** graph;
 
     while(fgets(line, sizeof(line), fp)){

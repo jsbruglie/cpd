@@ -63,4 +63,11 @@ bool graphNodeAddNeighbour(GraphNode** first, coordinate z);
  */
 void graphNodeSort(GraphNode** first_ptr);
 
+/** @brief Cleans up a graph list
+ *
+ *  @param head A pointer to the pointer of the graph list we want to clean up
+ *  @return Void.
+ */
+void graphListCleanup(GraphNode** head);
+
 #endif
