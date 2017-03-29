@@ -5,7 +5,7 @@
  *  @author Miguel Cardoso
  */
 
-#include "par_grid_.h"
+#include "par_grid.h"
 
 
 

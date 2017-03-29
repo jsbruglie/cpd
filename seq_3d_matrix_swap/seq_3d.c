@@ -92,7 +92,7 @@ void printActive(bool*** graph, int cube_size){
         for (y = 0; y < cube_size; ++y){
             for (z = 0; z < cube_size; ++z){
                 if (graph[x][y][z])
-                    printf("x:%d y:%d z:%d\n", x,y,z);
+                    printf("%d %d %d\n", x,y,z);
             }
         }
     }

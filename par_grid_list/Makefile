@@ -19,4 +19,4 @@ cleanup:
 	rm -f *.o
 
 clean:
-	rm -f seq_3d *.o *~ 
+	rm -f par_grid_list *.o *~ 

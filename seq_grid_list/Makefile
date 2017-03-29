@@ -16,7 +16,7 @@ seq_grid_list.o:
 	$(CC) -c $<  
 
 cleanup:
-	rm -f *.o
+	$ rm -f *.o
 
 clean:
-	rm -f seq_3d *.o *~ 
+	$ rm -f seq_grid_list *.o *~ 
