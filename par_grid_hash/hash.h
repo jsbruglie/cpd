@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <omp.h>
+#include <inttypes.h>
 
 #include "lists.h"
 
@@ -20,8 +21,6 @@ int hash(int size, int x, int y, int z);
 
 void hashtableWrite();
 int hashtableRead();
-
-int hashtableDelete();
 
 void freehashtable();
 
