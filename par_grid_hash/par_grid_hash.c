@@ -8,7 +8,9 @@
 
 #include "par_grid_hash.h"
 
-#define NUM_THREADS 8    /**< Number of threads */
+#define NUM_THREADS 4    /**< Number of threads */
+#define HASHRATIO 8
+#define INITIAL_ALIVE_NUMBER 50
 
 int main(int argc, char* argv[]){
 
@@ -19,28 +21,26 @@ int main(int argc, char* argv[]){
     int cube_size = 0;          /**< Size of the 3D space */
     
     GraphNode*** graph;         /**< Graph representation - 2D array of lists */
-    List* update;               /**< Contains the information of nodes that might change state */
+    Hashtable* hashtable;       /**< Contains the information of nodes that are alive */
 
     /* Iterator variables */
     int g, i, j;
     GraphNode* g_it = NULL;
     Node* it = NULL;
 
-    /* Lock variables */
-    omp_lock_t list_lock;
+    /* Lock variable */
     omp_lock_t** graph_lock;
 
     parseArgs(argc, argv, &file, &generations);
 
-    /* Create an empty list, with size 0 */
-    update = listCreate();
+    /* Create the hashtable */
+    hashtable = createHashtable(HASHRATIO * INITIAL_ALIVE_NUMBER); 
 
-    double start = omp_get_wtime();  // Start Timer
-
-    graph = parseFile(file, update, &cube_size);
+    graph = parseFile(file, hashtable, &cube_size);
+    printHashtable(hashtable); //DEBUG -- print the hashtable
     
     /* Initialize lock variables */
-    omp_init_lock(&list_lock);
+    
     graph_lock = (omp_lock_t**)malloc(cube_size * sizeof(omp_lock_t*));
     for(i = 0; i < cube_size; i++){
         graph_lock[i] = (omp_lock_t*) malloc(cube_size * sizeof(omp_lock_t));
@@ -49,64 +49,103 @@ int main(int argc, char* argv[]){
         }
     }
 
+    double start = omp_get_wtime();  // Start Timer
+    /* Generations */
     for(g = 1; g <= generations; g++){
         
-        /* Convert list to vector */
-        i = 0;
-        int size = update->size;
-        Node** vector = (Node**) malloc(sizeof(Node*) * size);
-        for (it = listFirst(update); it != NULL; it = it->next){
-            vector[i++] = it;
+        /* Convert hashtable to vector */
+        int num_alive = hashtable->occupied; //Number of alive nodes the hashtable has
+        Node** vector = (Node**) malloc(sizeof(Node*) * num_alive); //Vector has alive nodes
+        /* Go through the hashtable and copy all nodes found to vector*/
+        i=0;
+        for(j=0; j<hashtable->size ; j++){
+            for (it = listFirst(hashtable->table[j]); it != NULL; it = it->next){
+                if(it != NULL)
+                    vector[i++] = it;
+            }            
         }
-        Node** proccessed;
-        /* For each live node, inform its neighbors */
-        #pragma omp parallel
-        {
-            #pragma omp for
-            for (i = 0; i < size; i++){
-                //printf("Neighbours processing by thread: %d\n", omp_get_thread_num());
-                visitNeighbours(graph, graph_lock, cube_size, update, &list_lock, vector[i]->x, vector[i]->y, vector[i]->z);
-            }
-            
-            /* Convert list to vector */
-            #pragma omp single
-            {
-                i = 0;
-                size = update->size;
-                proccessed = (Node**) malloc(sizeof(Node*) * size);
-                for (it = listFirst(update); it != NULL; it = it->next){
-                    proccessed[i++] = it;
-                }                
-            }
 
-            /* Update graph and update set */         
-            #pragma omp for
-            for (i = 0; i < size; i++){
-                //printf("Update graph processing by thread: %d\n", omp_get_thread_num());
-                Node* it = proccessed[i];
+        /* Create the num_alive * 6 matrix that will store the neighbours of each alive node*/
+        Node*** neighbour_vector = (Node***)malloc(sizeof(Node**) * num_alive);
+        for(i=0; i<num_alive; i++){
+            neighbour_vector[i] = (Node**)malloc(sizeof(Node*) * 6);
+            for(j=0; j<6; j++)
+                neighbour_vector[i][j] = NULL;
+        }
+
+
+        /* For each live node, inform its neighbors, mistake is likely here */
+        for (i = 0; i < num_alive; i++){
+            //Get the coordinates from the alive node
+            coordinate x = vector[i]->x; 
+            coordinate y = vector[i]->y; 
+            coordinate z = vector[i]->z;
+            
+            coordinate x1, x2, y1, y2, z1, z2;
+            x1 = (x+1)%cube_size; x2 = (x-1) < 0 ? (cube_size-1) : (x-1);
+            y1 = (y+1)%cube_size; y2 = (y-1) < 0 ? (cube_size-1) : (y-1);
+            z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
+            
+            /* Create nodes whose ->first = NULL and that have NULL pointers*/
+            neighbour_vector[i][0] = nodeInsert(NULL, x1, y, z, NULL);
+            neighbour_vector[i][1] = nodeInsert(NULL, x2, y, z, NULL);
+            neighbour_vector[i][2] = nodeInsert(NULL, x, y1, z, NULL);
+            neighbour_vector[i][3] = nodeInsert(NULL, x, y2, z, NULL);
+            neighbour_vector[i][4] = nodeInsert(NULL, x, y, z1, NULL);
+            neighbour_vector[i][5] = nodeInsert(NULL, x, y, z2, NULL);
+            
+            graphNodeAddNeighbour(&(graph[x1][y]), z, &(neighbour_vector[i][0]->ptr), &graph_lock[x1][y]);
+            graphNodeAddNeighbour(&(graph[x2][y]), z, &(neighbour_vector[i][1]->ptr), &graph_lock[x2][y]);
+            graphNodeAddNeighbour(&(graph[x][y1]), z, &(neighbour_vector[i][2]->ptr), &graph_lock[x][y1]);
+            graphNodeAddNeighbour(&(graph[x][y2]), z, &(neighbour_vector[i][3]->ptr), &graph_lock[x][y2]);
+            graphNodeAddNeighbour(&(graph[x][y]), z1, &(neighbour_vector[i][4]->ptr), &graph_lock[x][y]); 
+            graphNodeAddNeighbour(&(graph[x][y]), z2, &(neighbour_vector[i][5]->ptr), &graph_lock[x][y]);
+
+        }
+
+        //Process the neighbours and the alive node
+        for(i=0; i < num_alive; i++){
+            /* Process alive nodes that are in vector*/
+            Node* it;
+            it = vector[i];
+            unsigned char live_neighbours = it->ptr->neighbours;
+            it->ptr->neighbours = 0;
+            if(it->ptr->state == ALIVE){
+                if(live_neighbours < 2 || live_neighbours > 4){
+                    it->ptr->state = DEAD;
+                    graphNodeRemove(&(graph[it->x][it->y]), it->z, &(graph_lock[it->x][it->y]));
+
+                    hashtableRemove(hashtable, it->x, it->y, it->z); //Remove from hashtable
+                }                        
+            }
+            int j;
+            for(j = 0; j < 6; j++){
+                /*For all other nodes that should be in the matrix*/
+                it = neighbour_vector[i][j];
                 unsigned char live_neighbours = it->ptr->neighbours;
                 it->ptr->neighbours = 0;
-                if(it->ptr->state == ALIVE){
-                    if(live_neighbours < 2 || live_neighbours > 4){
-                        graphNodeRemove(&(graph[it->x][it->y]), it->z, &(graph_lock[it->x][it->y]));
-                        it->x = REMOVE;
-                    }
-                }else{
+                if(it->ptr->state == DEAD){
+
                     if(live_neighbours == 2 || live_neighbours == 3){
-                        it->ptr->state = ALIVE; 
+                        it->ptr->state = ALIVE;
+                        //printf("Inserting ");
+                        hashtableWrite(hashtable, it->x, it->y, it->z, it->ptr); //Insert in hashtable
                     }
                     else{
                         graphNodeRemove(&(graph[it->x][it->y]), it->z, &(graph_lock[it->x][it->y]));
-                        it->x = REMOVE;
                     }
                 }
             }
         }
+        
+        /* Cleanup matrix and vector*/
+        for(i=0; i<num_alive; i++){
+            for(j=0; j<6; j++)
+                free(neighbour_vector[i][j]);
 
-
-        /* Clean dead cells from the set */
-        listCleanup(update);
-        free(proccessed);
+            free(neighbour_vector[i]);
+        }
+        free(neighbour_vector);
         free(vector);
     }
 
@@ -115,51 +154,22 @@ int main(int argc, char* argv[]){
     /* Print the final set of live cells */
     printAndSortActive(graph, cube_size);
     printf("Total Runtime: %f.\n", end - start);
-    printToFile(graph, cube_size, generations, file);
+    
     /* Free resources */
     freeGraph(graph, cube_size);
-    listDelete(update);
-    omp_destroy_lock(&list_lock);
+    
+    hashtableFree(hashtable);    
+
     for(i = 0; i < cube_size; i++){
         for(j=0; j<cube_size; j++){
             omp_destroy_lock(&(graph_lock[i][j]));
         }
     }
     free(file);
-
+    //printToFile(graph, cube_size, generations, file);
     return 0;
 }
 
-/**************************************************************************/
-void visitNeighbours(GraphNode*** graph, omp_lock_t** graph_lock, int cube_size,
-                        List* list, omp_lock_t* list_lock,
-                        coordinate x, coordinate y, coordinate z){
-
-    GraphNode* ptr;
-    coordinate x1, x2, y1, y2, z1, z2;
-    x1 = (x+1)%cube_size; x2 = (x-1) < 0 ? (cube_size-1) : (x-1);
-    y1 = (y+1)%cube_size; y2 = (y-1) < 0 ? (cube_size-1) : (y-1);
-    z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
-    /* If a cell is visited for the first time, add it to the update list, for fast access */
-    if(graphNodeAddNeighbour(&(graph[x1][y]), z, &ptr, &graph_lock[x1][y])){ 
-        listInsertLock(list, x1, y, z, ptr, list_lock);
-    }
-    if(graphNodeAddNeighbour(&(graph[x2][y]), z, &ptr, &graph_lock[x2][y])){ 
-        listInsertLock(list, x2, y, z, ptr, list_lock);
-    }
-    if(graphNodeAddNeighbour(&(graph[x][y1]), z, &ptr, &graph_lock[x][y1])){ 
-        listInsertLock(list, x, y1, z, ptr, list_lock);
-    }
-    if(graphNodeAddNeighbour(&(graph[x][y2]), z, &ptr, &graph_lock[x][y2])){ 
-        listInsertLock(list, x, y2, z, ptr, list_lock);
-    }
-    if(graphNodeAddNeighbour(&(graph[x][y]), z1, &ptr, &graph_lock[x][y])){ 
-        listInsertLock(list, x, y, z1, ptr, list_lock);
-    }
-    if(graphNodeAddNeighbour(&(graph[x][y]), z2, &ptr, &graph_lock[x][y])){ 
-        listInsertLock(list, x, y, z2, ptr, list_lock);
-    }
-}
 
 /**************************************************************************/
 GraphNode*** initGraph(int size){
@@ -223,7 +233,7 @@ void parseArgs(int argc, char* argv[], char** file, int* generations){
 }
 
 /**************************************************************************/
-GraphNode*** parseFile(char* file, List* list, int* cube_size){
+GraphNode*** parseFile(char* file, Hashtable* hashtable, int* cube_size){
     
     int first = 0;
     char line[BUFFER_SIZE];
@@ -245,7 +255,7 @@ GraphNode*** parseFile(char* file, List* list, int* cube_size){
             if(sscanf(line, "%d %d %d\n", &x, &y, &z) == 3){
                 /* Insert live nodes in the graph and the update set */
                 graph[x][y] = graphNodeInsert(graph[x][y], z, ALIVE);
-                listInsert(list, x, y, z, (GraphNode*) (graph[x][y]));                
+                hashtableWrite(hashtable, x, y, z, (GraphNode*)(graph[x][y]));                
             }
         }
     }
@@ -270,7 +280,7 @@ void printToFile(GraphNode*** graph, int cube_size, int generations, char* file)
     strcat(name, ".out");
     printf("%s\n", name);
     FILE* output_fd = fopen(name, "w");
-    fprintf(output_fd, "%d\n", cube_size);
+    //fprintf(output_fd, "%d\n", cube_size);
     int x,y;
     GraphNode* it;
     for (x = 0; x < cube_size; ++x){

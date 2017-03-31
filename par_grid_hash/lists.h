@@ -158,4 +158,6 @@ void listDelete(List* list);
  */
 void listCleanup(List* list);
 
+void graphListCleanup(GraphNode** head);
+
 #endif

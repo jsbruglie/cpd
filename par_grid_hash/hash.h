@@ -8,23 +8,26 @@
 #include <inttypes.h>
 
 #include "lists.h"
+typedef int coordinate;
 
 typedef struct _Hashtable{
-	List**;
+	List** table;
 	int size;
 	omp_lock_t* locks;
+	int occupied;
 }Hashtable;
 
 Hashtable* createHashtable(int size);
 
-int hash(int size, int x, int y, int z);
+int hash(int size, coordinate x, coordinate y, coordinate z);
 
-void hashtableWrite();
-int hashtableRead();
+void hashtableWrite(Hashtable* hashtable, coordinate x, coordinate y, coordinate z, GraphNode* ptr);
 
-void freehashtable();
+void hashtableRemove(Hashtable* hashtable, coordinate x, coordinate y, coordinate z);
 
 //DEBUG
-void printHashtable();
+void printHashtable(Hashtable* hashtable);
+
+void hashtableFree(Hashtable* hashtable);
 
 #endif

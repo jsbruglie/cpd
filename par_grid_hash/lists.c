@@ -51,6 +51,7 @@ bool graphNodeAddNeighbour(GraphNode** first, coordinate z, GraphNode** ptr, omp
     for(it = *first; it != NULL; it = it->next){
         if (it->z == z){
             it->neighbours++;
+            *ptr = it; //This was the hack added 
             omp_unset_lock(lock_ptr);
             return false;
         }
@@ -108,7 +109,9 @@ Node* listFirst(List* list){
 void listInsert(List* list, coordinate x, coordinate y, coordinate z, GraphNode* ptr){
     if(list != NULL){
         list->first = nodeInsert(list->first, x, y, z, ptr);
+
         list->size++;
+
     }
 }
 
@@ -204,4 +207,32 @@ void listCleanup(List* list){
             temp = prev->next;
         }
     }
+}
+
+
+void graphListCleanup(GraphNode** head){
+    GraphNode *temp, *prev;
+    if(*head != NULL){
+        temp = *head;
+        /* Delete from the beginning */
+        while(temp != NULL && temp->state == DEAD){
+            *head = temp->next;
+            free(temp);
+            temp = *head;
+        }
+        /*Delete from the middle*/
+        while(temp != NULL){
+            while (temp != NULL && temp->state != DEAD){
+                prev = temp;
+                temp = temp->next;
+            }
+            if(temp == NULL)
+                return;
+
+            prev->next = temp->next;
+            free(temp);
+            temp = prev->next;
+        }
+    }
+    
 }
