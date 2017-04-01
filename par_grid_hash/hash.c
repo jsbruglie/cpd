@@ -30,8 +30,10 @@ void hashtableWrite(Hashtable* hashtable, coordinate x, coordinate y, coordinate
 	//Check if it already exists in this current bucket
 	Node* n;
 	for(n = listFirst(hashtable->table[hashval]); n != NULL; n = n->next){
-		if(n->x == x && n->y == y && n->z == z)
+		if(n->x == x && n->y == y && n->z == z){
+			n->ptr = ptr;
 			return;
+		}
 	}
 	listInsert(hashtable->table[hashval], x, y, z, ptr);
 	hashtable->occupied++;

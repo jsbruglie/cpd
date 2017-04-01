@@ -51,7 +51,7 @@ bool graphNodeAddNeighbour(GraphNode** first, coordinate z, GraphNode** ptr, omp
     for(it = *first; it != NULL; it = it->next){
         if (it->z == z){
             it->neighbours++;
-            *ptr = it; //This was the hack added 
+            //*ptr = it; //This was the hack added 
             omp_unset_lock(lock_ptr);
             return false;
         }

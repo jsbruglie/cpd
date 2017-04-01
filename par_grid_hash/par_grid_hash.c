@@ -28,11 +28,13 @@ int main(int argc, char* argv[]){
     GraphNode* g_it = NULL;
     Node* it = NULL;
 
+
     /* Lock variable */
     omp_lock_t** graph_lock;
 
     parseArgs(argc, argv, &file, &generations);
-
+    int initial_alive = getAlive(file);
+    
     /* Create the hashtable */
     hashtable = createHashtable(HASHRATIO * INITIAL_ALIVE_NUMBER); 
 
@@ -85,23 +87,45 @@ int main(int argc, char* argv[]){
             x1 = (x+1)%cube_size; x2 = (x-1) < 0 ? (cube_size-1) : (x-1);
             y1 = (y+1)%cube_size; y2 = (y-1) < 0 ? (cube_size-1) : (y-1);
             z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
-            
-            /* Create nodes whose ->first = NULL and that have NULL pointers*/
-            neighbour_vector[i][0] = nodeInsert(NULL, x1, y, z, NULL);
-            neighbour_vector[i][1] = nodeInsert(NULL, x2, y, z, NULL);
-            neighbour_vector[i][2] = nodeInsert(NULL, x, y1, z, NULL);
-            neighbour_vector[i][3] = nodeInsert(NULL, x, y2, z, NULL);
-            neighbour_vector[i][4] = nodeInsert(NULL, x, y, z1, NULL);
-            neighbour_vector[i][5] = nodeInsert(NULL, x, y, z2, NULL);
-            
-            graphNodeAddNeighbour(&(graph[x1][y]), z, &(neighbour_vector[i][0]->ptr), &graph_lock[x1][y]);
-            graphNodeAddNeighbour(&(graph[x2][y]), z, &(neighbour_vector[i][1]->ptr), &graph_lock[x2][y]);
-            graphNodeAddNeighbour(&(graph[x][y1]), z, &(neighbour_vector[i][2]->ptr), &graph_lock[x][y1]);
-            graphNodeAddNeighbour(&(graph[x][y2]), z, &(neighbour_vector[i][3]->ptr), &graph_lock[x][y2]);
-            graphNodeAddNeighbour(&(graph[x][y]), z1, &(neighbour_vector[i][4]->ptr), &graph_lock[x][y]); 
-            graphNodeAddNeighbour(&(graph[x][y]), z2, &(neighbour_vector[i][5]->ptr), &graph_lock[x][y]);
+            GraphNode* ptr;
 
+            /* Create nodes whose ->first = NULL and that have NULL pointers*/
+            
+            if(graphNodeAddNeighbour(&(graph[x1][y]), z, &ptr, &graph_lock[x1][y])){
+                neighbour_vector[i][0] = nodeInsert(NULL, x1, y, z, ptr);
+            }else{
+                neighbour_vector[i][0] = NULL;
+            }
+            if(graphNodeAddNeighbour(&(graph[x2][y]), z, &ptr, &graph_lock[x2][y])){
+                neighbour_vector[i][1] = nodeInsert(NULL, x2, y, z, ptr);
+            }else{
+                neighbour_vector[i][1] = NULL;
+            }
+            if(graphNodeAddNeighbour(&(graph[x][y1]), z, &ptr, &graph_lock[x][y1])){
+                neighbour_vector[i][2] = nodeInsert(NULL, x, y1, z, ptr);
+            }else{
+                neighbour_vector[i][2] = NULL;
+            }
+            if(graphNodeAddNeighbour(&(graph[x][y2]), z, &ptr, &graph_lock[x][y2])){
+                neighbour_vector[i][3] = nodeInsert(NULL, x, y2, z, ptr);
+            }else{
+                neighbour_vector[i][3] = NULL;
+            }
+            if(graphNodeAddNeighbour(&(graph[x][y]), z1, &ptr, &graph_lock[x][y])){
+                neighbour_vector[i][4] = nodeInsert(NULL, x, y, z1, ptr);
+            }else{
+                neighbour_vector[i][4] = NULL;
+            }
+            if(graphNodeAddNeighbour(&(graph[x][y]), z2, &ptr, &graph_lock[x][y])){
+                neighbour_vector[i][5] = nodeInsert(NULL, x, y, z2, ptr);
+            }else{
+                neighbour_vector[i][5] = NULL;
+            }
+            
         }
+
+
+
 
         //Process the neighbours and the alive node
         for(i=0; i < num_alive; i++){
@@ -122,19 +146,22 @@ int main(int argc, char* argv[]){
             for(j = 0; j < 6; j++){
                 /*For all other nodes that should be in the matrix*/
                 it = neighbour_vector[i][j];
-                unsigned char live_neighbours = it->ptr->neighbours;
-                it->ptr->neighbours = 0;
-                if(it->ptr->state == DEAD){
+                if(it != NULL){
+                    unsigned char live_neighbours = it->ptr->neighbours;
+                    it->ptr->neighbours = 0;
+                    if(it->ptr->state == DEAD){
 
-                    if(live_neighbours == 2 || live_neighbours == 3){
-                        it->ptr->state = ALIVE;
-                        //printf("Inserting ");
-                        hashtableWrite(hashtable, it->x, it->y, it->z, it->ptr); //Insert in hashtable
-                    }
-                    else{
-                        graphNodeRemove(&(graph[it->x][it->y]), it->z, &(graph_lock[it->x][it->y]));
+                        if(live_neighbours == 2 || live_neighbours == 3){
+                            it->ptr->state = ALIVE;
+                            //printf("Inserting ");
+                            hashtableWrite(hashtable, it->x, it->y, it->z, it->ptr); //Insert in hashtable
+                        }
+                        else{
+                            graphNodeRemove(&(graph[it->x][it->y]), it->z, &(graph_lock[it->x][it->y]));
+                        }
                     }
                 }
+                
             }
         }
         
@@ -154,7 +181,7 @@ int main(int argc, char* argv[]){
     /* Print the final set of live cells */
     printAndSortActive(graph, cube_size);
     printf("Total Runtime: %f.\n", end - start);
-    
+    printToFile(graph, cube_size, generations, file);
     /* Free resources */
     freeGraph(graph, cube_size);
     
@@ -166,7 +193,7 @@ int main(int argc, char* argv[]){
         }
     }
     free(file);
-    //printToFile(graph, cube_size, generations, file);
+
     return 0;
 }
 
@@ -294,4 +321,13 @@ void printToFile(GraphNode*** graph, int cube_size, int generations, char* file)
 }
 
 
-
+int getAlive(char* file){
+    char base_name[255];
+    int n = strstr(file,"in") - file;
+    strncpy(base_name, file, n);
+    printf("%s\n", base_name);
+    const char separator = '/';
+    char * const sep_at = strrchr(base_name, separator);
+    *sep_at = '\0';
+    char* name = sep_at + 1;
+}
