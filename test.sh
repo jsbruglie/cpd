@@ -1,7 +1,7 @@
 #!/bin/bash
 
-FILE_ARRAY=(par_grid par_grid_list seq_grid seq_grid_list seq_3d)
-DIRECTORY_ARRAY=(par_grid par_grid_list seq_grid seq_grid_list seq_3d_matrix_swap)
+FILE_ARRAY=(par_grid par_grid_list seq_grid seq_grid_list)
+DIRECTORY_ARRAY=(par_grid par_grid_list seq_grid seq_grid_list)
 DATA_ARRAY=(s5e50 s20e400 s50e50k s150e10k s200e50k s500e300k)
 GENERATIONS_ARRAY=(10 300 500 1000 2000)
 THREADS_ARRAY=(1 2 4 8)
@@ -19,10 +19,10 @@ function run {
 	while [ $counter -lt 5 ]; do
 		#echo "Running $1/$2 on data/$3.in for the $counter time."
 		counter=$((counter + 1))
-		$1/$2 data/$3.in $4 >> results/$3.$4.$2.out
+		$1/$2 data/$3.in $4 >> results/$3.$4.$2.$5.out
 	done
 	echo -n "$3.in, $2, $4, $5, " >> results/averages.$2.csv
-	awk '{ sum += $1 } END { print sum/NR }' results/$3.$4.$2.out >> results/averages.$2.csv
+	awk '{ sum += $1 } END { print sum/NR }' results/$3.$4.$2.$5.out >> results/averages.$2.csv
 }
 
 for directory in ${DIRECTORY_ARRAY[@]}; do

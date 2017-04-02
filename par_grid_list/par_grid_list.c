@@ -118,9 +118,9 @@ int main(int argc, char* argv[]){
     double end = omp_get_wtime();   // Stop Timer
     
     /* Print the final set of live cells */
-    printAndSortActive(graph, cube_size);
-    printf("Total Runtime: %f.\n", end - start);
-    printToFile(graph, cube_size, generations, file);
+    //printAndSortActive(graph, cube_size);
+    printf("%f\n", end - start);
+    //printToFile(graph, cube_size, generations, file);
     /* Free resources */
     freeGraph(graph, cube_size);
     listDelete(update);

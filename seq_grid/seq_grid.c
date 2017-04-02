@@ -71,7 +71,7 @@ int main(int argc, char* argv[]){
     /* Print the final set of live cells */
     printAndSortActive(graph, cube_size);
 
-    printf("Total Runtime: %f.\n", end - start);
+    printf("%f\n", end - start);
 
     freeGraph(graph, cube_size);
     free(file);

@@ -1,4 +1,4 @@
-/** @file seq_grids.c
+/* @file seq_grids.c
  *  @brief Grid bruteforce in C
  *  @author Pedro Abreu
  *  @author João Borrego
@@ -92,9 +92,9 @@ int main(int argc, char* argv[]){
     double end = omp_get_wtime();   // Stop Timer
 
     /* Print the final set of live cells */
-    printAndSortActive(graph, cube_size);
+    //printAndSortActive(graph, cube_size);
 
-    printf("Total Runtime: %f.\n", end - start);
+    printf("%f\n", end - start);
 
     for(i = 0; i < cube_size; i++){
         for(j=0; j<cube_size; j++){
