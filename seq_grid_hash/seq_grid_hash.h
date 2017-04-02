@@ -23,9 +23,9 @@ typedef unsigned char bool;
  *  @param y Y coordinate
  *  @param z Z coordinate
  */
-void visitNeighbours(GraphNode*** graph, omp_lock_t** graph_lock, int cube_size,
+/*void visitNeighbours(GraphNode*** graph, omp_lock_t** graph_lock, int cube_size,
                         Node** neighbour_vector, 
-                        coordinate x, coordinate y, coordinate z);
+                        coordinate x, coordinate y, coordinate z);*/
 
 /** @brief Initializes the graph representation structure
  *  
@@ -65,5 +65,5 @@ void parseArgs(int argc, char* argv[], char** file, int* generations);
  */
 GraphNode*** parseFile(char* file, Hashtable* hashtable, int* cube_size);    
 void printToFile(GraphNode*** graph, int cube_size, int generations, char* file);
-
+int getAlive(char* file);
 #endif

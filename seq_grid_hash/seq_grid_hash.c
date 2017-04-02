@@ -6,15 +6,15 @@
  *  @author Miguel Cardoso
  */
 
-#include "par_grid_hash.h"
+#include "seq_grid_hash.h"
 
-#define NUM_THREADS 4    /**< Number of threads */
+//#define NUM_THREADS 4    /**< Number of threads */
 #define HASHRATIO 8
-#define INITIAL_ALIVE_NUMBER 50
+//#define INITIAL_ALIVE_NUMBER 50
 
 int main(int argc, char* argv[]){
 
-    omp_set_num_threads(NUM_THREADS); /**< Set number of threads*/
+    //omp_set_num_threads(NUM_THREADS); /**< Set number of threads*/
 
     char* file;                 /**< Input data file name */
     int generations = 0;        /**< Number of generations to proccess */
@@ -36,7 +36,7 @@ int main(int argc, char* argv[]){
     int initial_alive = getAlive(file);
     
     /* Create the hashtable */
-    hashtable = createHashtable(HASHRATIO * INITIAL_ALIVE_NUMBER); 
+    hashtable = createHashtable(HASHRATIO * initial_alive); 
 
     graph = parseFile(file, hashtable, &cube_size);
     printHashtable(hashtable); //DEBUG -- print the hashtable
@@ -89,7 +89,7 @@ int main(int argc, char* argv[]){
             z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
             GraphNode* ptr;
 
-            /* Create nodes whose ->first = NULL and that have NULL pointers*/
+            /* Create pointers to the graph that have not been repeated*/
             
             if(graphNodeAddNeighbour(&(graph[x1][y]), z, &ptr, &graph_lock[x1][y])){
                 neighbour_vector[i][0] = nodeInsert(NULL, x1, y, z, ptr);
@@ -123,9 +123,6 @@ int main(int argc, char* argv[]){
             }
             
         }
-
-
-
 
         //Process the neighbours and the alive node
         for(i=0; i < num_alive; i++){
@@ -330,4 +327,9 @@ int getAlive(char* file){
     char * const sep_at = strrchr(base_name, separator);
     *sep_at = '\0';
     char* name = sep_at + 1;
+    printf("%s\n", name);
+    int size = 0;
+    int alive_num = 0;
+    sscanf(name, "s%de%d.", &size, &alive_num);
+    return alive_num;
 }
