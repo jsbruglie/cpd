@@ -10,6 +10,9 @@ PAR_GRID = par_grid
 PAR_GRID_LIST = par_grid_list 
 PAR_GRID_HASH = par_grid_hash 
 
+# Options
+BENCH = "-D BENCHMARK"
+
 all:
 
 	+$(MAKE) -C $(SEQ_3D_DIR)
@@ -29,3 +32,13 @@ clean:
 	+$(MAKE) -C $(PAR_GRID) clean
 	+$(MAKE) -C $(PAR_GRID_LIST) clean
 	+$(MAKE) -C $(PAR_GRID_HASH) clean
+
+benchmark:
+
+	+$(MAKE) -C $(SEQ_3D_DIR) FLAG=$(BENCH)
+	+$(MAKE) -C $(SEQ_GRID) FLAG=$(BENCH)
+	+$(MAKE) -C $(SEQ_GRID_LIST) FLAG=$(BENCH)
+	+$(MAKE) -C $(SEQ_GRID_HASH) FLAG=$(BENCH)
+	+$(MAKE) -C $(PAR_GRID) FLAG=$(BENCH)
+	+$(MAKE) -C $(PAR_GRID_LIST) FLAG=$(BENCH)
+	+$(MAKE) -C $(PAR_GRID_HASH) FLAG=$(BENCH)

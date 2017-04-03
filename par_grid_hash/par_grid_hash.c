@@ -24,7 +24,7 @@ int main(int argc, char* argv[]){
     hashtable = createHashtable(HASH_RATIO * initial_alive); 
 
     graph = parseFile(input_name, hashtable, &cube_size);
-    //debug_print("Hashtable: Occupation %.1f, Average %.2f elements per bucket", (hashtable->occupied*1.0) / hashtable->size, (hashtable->elements*1.0) /  hashtable->occupied);
+    debug_print("Hashtable: Occupation %.1f, Average %.2f elements per bucket", (hashtable->occupied*1.0) / hashtable->size, (hashtable->elements*1.0) /  hashtable->occupied);
 
     /* Initialize lock variables */
     graph_lock = (omp_lock_t**)malloc(cube_size * sizeof(omp_lock_t*));
@@ -139,8 +139,8 @@ int main(int argc, char* argv[]){
     double end = omp_get_wtime();   // Stop Timer
     
     /* Print the final set of live cells */
-    printSortedGraphToFile(graph, cube_size, input_name, generations);
-    printf("Total Runtime: %f.\n", end - start);
+    printAndSortActive(graph, cube_size);
+    time_print(" %f\n", end - start);
     
     /* Free resources */
     freeGraph(graph, cube_size);
@@ -183,6 +183,22 @@ void freeGraph(GraphNode*** graph, int size){
         free(graph);
     }
 }
+
+void printAndSortActive(GraphNode*** graph, int cube_size){
+     int x,y;
+     GraphNode* it;
+     for (x = 0; x < cube_size; ++x){
+         for (y = 0; y < cube_size; ++y){
+             /* Sort the list by ascending coordinate z */
+             graphNodeSort(&(graph[x][y]));
+             for (it = graph[x][y]; it != NULL; it = it->next){
+                 if (it->state == ALIVE)
+                     out_print("%d %d %d\n", x, y, it->z);
+             }
+         }
+     }
+}
+
 
 void printSortedGraphToFile(GraphNode*** graph, int cube_size, char* input_name, int generations){
     

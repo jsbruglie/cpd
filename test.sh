@@ -1,7 +1,7 @@
 #!/bin/bash
 
-FILE_ARRAY=(par_grid par_grid_list seq_grid seq_grid_list)
-DIRECTORY_ARRAY=(par_grid par_grid_list seq_grid seq_grid_list)
+FILE_ARRAY=(par_grid par_grid_list par_grid_hash seq_grid seq_grid_list seq_grid_hash)
+DIRECTORY_ARRAY=(par_grid par_grid_list par_grid_hash seq_grid seq_grid_list seq_grid_hash)
 DATA_ARRAY=(s5e50 s20e400 s50e50k s150e10k s200e50k s500e300k)
 GENERATIONS_ARRAY=(10 300 500 1000 2000)
 THREADS_ARRAY=(1 2 4 8)
@@ -11,6 +11,9 @@ mkdir -p results
 #TAKE CARE.
 rm -f results/*.out
 rm -f results/*.csv
+
+make clean
+make benchmark
 
 thread=1
 
@@ -50,3 +53,5 @@ for directory in ${DIRECTORY_ARRAY[@]}; do
 		fi
 	done
 done
+
+make clean

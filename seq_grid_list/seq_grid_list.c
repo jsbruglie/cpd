@@ -27,7 +27,7 @@ int main(int argc, char* argv[]){
     Node* it = NULL;
 
     parseArgs(argc, argv, &file, &generations);
-    //printf("ARGS: file: %s generations: %d.\n", file, generations);
+    debug_print("ARGS: file: %s generations: %d.", file, generations);
 
     /* Create an empty list, with size 0 */
     update = listCreate();
@@ -81,9 +81,9 @@ int main(int argc, char* argv[]){
     double end = omp_get_wtime();   // Stop Timer
     
     /* Print the final set of live cells */
-    //printAndSortActive(graph, cube_size);
+    printAndSortActive(graph, cube_size);
 
-    printf("%f\n", end - start);
+    time_print("%f\n", end - start);
     
     freeGraph(graph, cube_size);
     listDelete(update);
@@ -145,7 +145,7 @@ void printAndSortActive(GraphNode*** graph, int cube_size){
             graphNodeSort(&(graph[x][y]));
             for (it = graph[x][y]; it != NULL; it = it->next){    
                 /* At the end of each generation, the graph is guranteed to only have live cells */
-                printf("%d %d %d\n", x, y, it->z);
+                out_print("%d %d %d\n", x, y, it->z);
             }
         }
     }
@@ -161,7 +161,7 @@ void parseArgs(int argc, char* argv[], char** file, int* generations){
         if (*generations > 0 && file_name != NULL)
             return;
     }    
-    printf("Usage: %s [data_file.in] [number_generations]", argv[0]);
+    printf("Usage: %s [data_file.in] [number_generations]\n", argv[0]);
     exit(EXIT_FAILURE);
 }
 
@@ -172,7 +172,7 @@ GraphNode*** parseFile(char* file, List* list, int* cube_size){
     int x, y, z;
     FILE* fp = fopen(file, "r");
     if(fp == NULL){
-        fprintf(stderr, "Please input a valid file name\n");
+        err_print("Please input a valid file name");
         exit(EXIT_FAILURE);
     }
     GraphNode*** graph;

@@ -1,5 +1,16 @@
-#ifndef SEQUENTIAL_H
-#define SEQUENTIAL_H
+/** @file par_grid.h
+ *  @brief Function prototypes for par_grid.c
+ *
+ *  Parallel implementation with 2D Matrix of lists,
+ *  with a brute force iteration
+ *
+ *  @author Pedro Abreu
+ *  @author João Borrego
+ *  @author Miguel Cardoso
+ */
+
+#ifndef PARALLEL_GRID_H
+#define PARALLEL_GRID_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,13 +18,13 @@
 #include <omp.h>
 
 #include "lists.h"
+#include "debug.h"
 
-#define ALIVE 1
-#define DEAD 0
+#define ALIVE 1             /**< Macro for representing a live cell */
+#define DEAD 0              /**< Macro for representing a dead cell */
 
-#define NUM_THREADS 8    /**< Number of threads */
-#define REMOVAL_PERIOD 5 /**< Number of generations until you cleanup the dead nodes from graph */
-#define BUFFER_SIZE 100
+#define REMOVAL_PERIOD 5    /**< Number of generations between graph cleanup calls (removal of dead nodes) */
+#define BUFFER_SIZE 100     /**< Maximum length for a single infile line */
 
 typedef unsigned char bool;
 
@@ -30,20 +41,20 @@ void visitNeighbours(GraphNode*** graph, omp_lock_t** graph_lock, int cube_size,
 
 /** @brief Initializes the graph representation structure
  *  
- *  @param size The size of the side of the cube that represents the 3D space
+ *  @param cube_size The size of the side of the cube that represents the 3D space
  */
-GraphNode*** initGraph(int size);
+GraphNode*** initGraph(int cube_size);
 
 /** @brief Frees the graph representation from memory
  *  
- *  @param size The size of the side of the cube that represents the 3D space
+ *  @param cube_size The size of the side of the cube that represents the 3D space
  */
-void freeGraph(GraphNode*** graph, int size);
+void freeGraph(GraphNode*** graph, int cube_size);
 
 /** @brief Prints the graph, and sorts each of the lists
  *
- *  SHOULD NOT BE CALLED DURING THE CALCULATION OF A GENERATION:
- *  SORTING WILL BREAK POINTER LOGIC
+ *  @attention Must not be called between the calculation of generations,
+ *  as it breaks the hashtable references to graph nodes!
  *
  *  @param graph The graph representation    
  *  @param size The size of the side of the cube that represents the 3D space
@@ -52,17 +63,22 @@ void printAndSortActive(GraphNode*** graph, int cube_size);
 
 /** @brief Parse command line arguments
  *
+ *  @attention `input_name` will be dynamically allocated inside and must be freed 
+ *
  *  @param argc Number of arguments
- *  @param argv Argument string
- *  @param file Output   
+ *  @param argv Argument strings
+ *  @param input_name The name of the input file
+ *  @param A pointer to the number of generations to be processed
+ *  @return Void.    
  */
 void parseArgs(int argc, char* argv[], char** file, int* generations);
 
-/** @brief Parse input file contents 
+/** @brief Parse input file contents to graph and hashtable 
  *
  *  @param file Filename string
  *  @param list List for keeping track of live cells and neighbours
  *  @param cube_size The size of the side of the cube that represents the 3D space
+ *  @return The filled `GraphNode` graph representation.
  */
 GraphNode*** parseFile(char* file, int* cube_size);    
 

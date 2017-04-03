@@ -1,23 +1,6 @@
-/** @file  par_grid_list.c
- *  @brief  Parallel 2D Matrix with lists. 
- *
- *  Parallel OpenMP implementation of seq_grid_list  
- *  2D Matrix of lists is used as the graph representation.
- *  A separate list is used for keeping track of live cells and neighbours.
- *  This list provides fast direct access to the nodes, by storing pointers to them.
- *
- *  @author Pedro Abreu
- *  @author João Borrego
- *  @author Miguel Cardoso
- */
-
 #include "par_grid_list.h"
 
-#define NUM_THREADS 8    /**< Number of threads */
-
 int main(int argc, char* argv[]){
-
-    omp_set_num_threads(NUM_THREADS); /**< Set number of threads*/
 
     char* file;                 /**< Input data file name */
     int generations = 0;        /**< Number of generations to proccess */
@@ -108,7 +91,6 @@ int main(int argc, char* argv[]){
             }
         }
 
-
         /* Clean dead cells from the set */
         listCleanup(update);
         free(proccessed);
@@ -118,9 +100,9 @@ int main(int argc, char* argv[]){
     double end = omp_get_wtime();   // Stop Timer
     
     /* Print the final set of live cells */
-    //printAndSortActive(graph, cube_size);
-    printf("%f\n", end - start);
-    //printToFile(graph, cube_size, generations, file);
+    printAndSortActive(graph, cube_size);
+    time_print("%f\n", end - start);
+    
     /* Free resources */
     freeGraph(graph, cube_size);
     listDelete(update);
@@ -206,7 +188,7 @@ void printAndSortActive(GraphNode*** graph, int cube_size){
             graphNodeSort(&(graph[x][y]));
             for (it = graph[x][y]; it != NULL; it = it->next){    
                 /* At the end of each generation, the graph is guranteed to only have live cells */
-                printf("%d %d %d\n", x, y, it->z);
+                out_print("%d %d %d\n", x, y, it->z);
             }
         }
     }
@@ -235,7 +217,7 @@ GraphNode*** parseFile(char* file, List* list, int* cube_size){
     int x, y, z;
     FILE* fp = fopen(file, "r");
     if(fp == NULL){
-        fprintf(stderr, "Please input a valid file name\n");
+        err_print("Please input a valid file name");
         exit(EXIT_FAILURE);
     }
     GraphNode*** graph;
@@ -258,35 +240,3 @@ GraphNode*** parseFile(char* file, List* list, int* cube_size){
     fclose(fp);
     return graph;
 }
-
-/**************************************************************************/
-void printToFile(GraphNode*** graph, int cube_size, int generations, char* file){
-    char base_name[255];
-    int n = strstr(file,"in") - file;
-    strncpy(base_name, file, n);
-    printf("%s\n", base_name);
-    const char separator = '/';
-    char * const sep_at = strrchr(base_name, separator);
-    *sep_at = '\0';
-    char* name = sep_at + 1;
-    char gen_str[255];
-    sprintf(gen_str, "%d", generations);
-    strcat(name, gen_str);
-    strcat(name, ".out");
-    printf("%s\n", name);
-    FILE* output_fd = fopen(name, "w");
-    fprintf(output_fd, "%d\n", cube_size);
-    int x,y;
-    GraphNode* it;
-    for (x = 0; x < cube_size; ++x){
-        for (y = 0; y < cube_size; ++y){
-            for (it = graph[x][y]; it != NULL; it = it->next){    
-                /* At the end of each generation, the graph is guranteed to only have live cells */
-                fprintf(output_fd, "%d %d %d\n", x, y, it->z);
-            }
-        }
-    }
-}
-
-
-

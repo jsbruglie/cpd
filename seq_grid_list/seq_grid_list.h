@@ -1,5 +1,5 @@
-#ifndef SEQUENTIAL_H
-#define SEQUENTIAL_H
+#ifndef SEQUENTIAL_GRID_LIST_H
+#define SEQUENTIAL_GRID_LIST_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +7,7 @@
 #include <omp.h>
 
 #include "lists.h"
+#include "debug.h"
 
 #define ALIVE 1
 #define DEAD 0

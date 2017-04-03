@@ -1,17 +1,6 @@
-/* @file seq_grids.c
- *  @brief Grid bruteforce in C
- *  @author Pedro Abreu
- *  @author João Borrego
- *  @author Miguel Cardoso
- */
-
 #include "par_grid.h"
 
-
-
 int main(int argc, char* argv[]){
-
-    omp_set_num_threads(NUM_THREADS); /**< Set number of threads*/
 
     char* file;             /**< Input data file name */
     int generations = 0;    /**< Number of generations to proccess */
@@ -27,10 +16,8 @@ int main(int argc, char* argv[]){
     int live_neighbours;
 
     parseArgs(argc, argv, &file, &generations);
-    //printf("ARGS: file: %s generations: %d.\n", file, generations);
+    debug_print("ARGS: file: %s generations: %d.", file, generations);
 
-    
-    
     double start = omp_get_wtime();  // Start Timer
     graph = parseFile(file, &cube_size);
 
@@ -77,7 +64,7 @@ int main(int argc, char* argv[]){
                 }
             }
             /* Remove dead nodes from the graph once in a while (like g%5) */
-            if(g%REMOVAL_PERIOD == 0){
+            if(g % REMOVAL_PERIOD == 0){
                 #pragma omp for private(i, j)
                 for(i = 0; i < cube_size; i++){
                     for(j = 0; j < cube_size; j++){
@@ -92,12 +79,12 @@ int main(int argc, char* argv[]){
     double end = omp_get_wtime();   // Stop Timer
 
     /* Print the final set of live cells */
-    //printAndSortActive(graph, cube_size);
+    printAndSortActive(graph, cube_size);
 
-    printf("%f\n", end - start);
+    time_print("%f\n", end - start);
 
     for(i = 0; i < cube_size; i++){
-        for(j=0; j<cube_size; j++){
+        for(j = 0; j<cube_size; j++){
             omp_destroy_lock(&(graph_lock[i][j]));
         }
         free(graph_lock[i]);
@@ -160,7 +147,7 @@ void printAndSortActive(GraphNode*** graph, int cube_size){
             graphNodeSort(&(graph[x][y]));
             for (it = graph[x][y]; it != NULL; it = it->next){    
                 if (it->state == ALIVE)
-                    printf("%d %d %d\n", x, y, it->z);
+                    out_print("%d %d %d\n", x, y, it->z);
             }
         }
     }
@@ -187,7 +174,7 @@ GraphNode*** parseFile(char* file, int* cube_size){
     int x, y, z;
     FILE* fp = fopen(file, "r");
     if(fp == NULL){
-        fprintf(stderr, "Please input a valid file name\n");
+        err_print("Please input a valid file name");
         exit(EXIT_FAILURE);
     }
 

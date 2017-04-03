@@ -1,19 +1,20 @@
 OBJECT_FILES = par_grid.o lists.o
 CFLAGS = -ggdb -Wall
 LIBS =
-CC = gcc -fopenmp  
+CC = gcc -fopenmp
+FLAG =
 
 all: par_grid cleanup
 
 par_grid: $(OBJECT_FILES)
 
 par_grid:
-	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
+	$(CC) $(CFLAGS) $(FLAG) $^ $(LIBS) -o $@
 	
 par_grid.o:
 
 %.o: %.c
-	$(CC) -c $<  
+	$(CC) $(FLAG) -c $<  
 
 cleanup:
 	$ rm -f *.o

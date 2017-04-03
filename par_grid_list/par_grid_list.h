@@ -1,5 +1,18 @@
-#ifndef SEQUENTIAL_H
-#define SEQUENTIAL_H
+/** @file   par_grid_list.h
+ *  @brief  Parallel 2D Matrix with lists. 
+ *
+ *  Parallel OpenMP implementation of seq_grid_list  
+ *  2D Matrix of lists is used as the graph representation.
+ *  A separate list is used for keeping track of live cells and neighbours.
+ *  This list provides fast direct access to the nodes, by storing pointers to them.
+ *
+ *  @author Pedro Abreu
+ *  @author João Borrego
+ *  @author Miguel Cardoso
+ */
+
+#ifndef PARALLEL_LIST_H
+#define PARALLEL_LIST_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +20,7 @@
 #include <omp.h>
 
 #include "lists.h"
+#include "debug.h"
 
 #define ALIVE 1
 #define DEAD 0
@@ -64,6 +78,5 @@ void parseArgs(int argc, char* argv[], char** file, int* generations);
  *  @param cube_size The size of the side of the cube that represents the 3D space
  */
 GraphNode*** parseFile(char* file, List* list, int* cube_size);    
-void printToFile(GraphNode*** graph, int cube_size, int generations, char* file);
 
 #endif
