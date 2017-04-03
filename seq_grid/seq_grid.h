@@ -1,5 +1,5 @@
-#ifndef SEQUENTIAL_H
-#define SEQUENTIAL_H
+#ifndef SEQUENTIAL_GRID_H
+#define SEQUENTIAL_GRID_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,12 +7,13 @@
 #include <omp.h>
 
 #include "lists.h"
+#include "debug.h"
 
-#define ALIVE 1
-#define DEAD 0
+#define ALIVE 1          /**< Macro for representing a live cell */
+#define DEAD 0           /**< Macro for representing a dead cell */
 
 #define REMOVAL_PERIOD 5 /**< Number of generations until you cleanup the dead nodes from graph */
-#define BUFFER_SIZE 100
+#define BUFFER_SIZE 100  /**< Maximum length for a single infile line */
 
 typedef unsigned char bool;
 
@@ -41,8 +42,8 @@ void freeGraph(GraphNode*** graph, int size);
 
 /** @brief Prints the graph, and sorts each of the lists
  *
- *  SHOULD NOT BE CALLED DURING THE CALCULATION OF A GENERATION:
- *  SORTING WILL BREAK POINTER LOGIC
+ *  @attention Should not be called while processing generations,
+ *  as sorting breaks pointer logic with list
  *
  *  @param graph The graph representation    
  *  @param size The size of the side of the cube that represents the 3D space

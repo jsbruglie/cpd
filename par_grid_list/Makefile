@@ -9,7 +9,7 @@ all: par_grid_list cleanup
 par_grid_list: $(OBJECT_FILES)
 
 par_grid_list:
-	$(CC) $(FLAG) $(CFLAGS) -o $@ $^ $(LIBS) 
+	$(CC) $(CFLAGS) $(FLAG) -o $@ $^ $(LIBS) 
 	
 par_grid_list.o:
 

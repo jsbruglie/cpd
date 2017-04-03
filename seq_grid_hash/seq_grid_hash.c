@@ -14,9 +14,6 @@ int main(int argc, char* argv[]){
     GraphNode* g_it = NULL;
     Node* it = NULL;
 
-    /* Lock variables */
-    omp_lock_t** graph_lock;
-
     parseArgs(argc, argv, &input_name, &generations);
     int initial_alive = getAlive(input_name);
 
@@ -24,7 +21,7 @@ int main(int argc, char* argv[]){
     hashtable = createHashtable(HASH_RATIO * initial_alive); 
 
     graph = parseFile(input_name, hashtable, &cube_size);
-    //debug_print("Hashtable: Occupation %.1f, Average %.2f elements per bucket", (hashtable->occupied*1.0) / hashtable->size, (hashtable->elements*1.0) /  hashtable->occupied);
+    debug_print("Hashtable: Occupation %.1f, Average %.2f elements per bucket", (hashtable->occupied*1.0) / hashtable->size, (hashtable->elements*1.0) /  hashtable->occupied);
 
     double start = omp_get_wtime();  // Start Timer
     
@@ -43,7 +40,6 @@ int main(int argc, char* argv[]){
 
         /* Create the num_alive * 6 matrix that will store the neighbours of each alive node */
         Node*** neighbour_vector = (Node***)malloc(sizeof(Node**) * num_alive);
-        #pragma omp parallel for private(i, j)
         for(i = 0; i < num_alive; i++){
             neighbour_vector[i] = (Node**)malloc(sizeof(Node*) * 6);
             for(j = 0; j < 6; j++){
@@ -128,8 +124,8 @@ int main(int argc, char* argv[]){
     double end = omp_get_wtime();   // Stop Timer
     
     /* Print the final set of live cells */
-    printSortedGraphToFile(graph, cube_size, input_name, generations);
-    printf("Total Runtime: %f.\n", end - start);
+    printAndSortActive(graph, cube_size);
+    time_print("%f\n", end - start);
     
     /* Free resources */
     freeGraph(graph, cube_size);
@@ -166,6 +162,21 @@ void freeGraph(GraphNode*** graph, int size){
         }
         free(graph);
     }
+}
+
+void printAndSortActive(GraphNode*** graph, int cube_size){ 
+     int x,y; 
+     GraphNode* it; 
+     for (x = 0; x < cube_size; ++x){ 
+         for (y = 0; y < cube_size; ++y){ 
+              /* Sort the list by ascending coordinate z */ 
+              graphNodeSort(&(graph[x][y])); 
+              for (it = graph[x][y]; it != NULL; it = it->next){ 
+                  if (it->state == ALIVE) 
+                      out_print("%d %d %d\n", x, y, it->z); 
+              } 
+         } 
+     } 
 }
 
 void printSortedGraphToFile(GraphNode*** graph, int cube_size, char* input_name, int generations){

@@ -20,7 +20,7 @@ int main(int argc, char* argv[]){
     int live_neighbours;
 
     parseArgs(argc, argv, &file, &generations);
-    //printf("ARGS: file: %s generations: %d.\n", file, generations);
+    debug_print("ARGS: file: %s generations: %d", file, generations);
 
     double start = omp_get_wtime();  // Start Timer
     graph = parseFile(file, &cube_size);
@@ -54,9 +54,8 @@ int main(int argc, char* argv[]){
                 }
             }
         }
-        /* Remove dead nodes from the graph once in a while (like g%5) */
-        // TODO
-        if(g%REMOVAL_PERIOD == 0){
+        /* Remove dead nodes from the graph every REMOVAL_PERIOD generations */
+        if(g % REMOVAL_PERIOD == 0){
             for(i = 0; i < cube_size; i++){
                 for(j = 0; j < cube_size; j++){
                     GraphNode ** list = &graph[i][j];
@@ -71,7 +70,7 @@ int main(int argc, char* argv[]){
     /* Print the final set of live cells */
     printAndSortActive(graph, cube_size);
 
-    printf("%f\n", end - start);
+    time_print("%f\n", end - start);
 
     freeGraph(graph, cube_size);
     free(file);
@@ -130,7 +129,7 @@ void printAndSortActive(GraphNode*** graph, int cube_size){
             graphNodeSort(&(graph[x][y]));
             for (it = graph[x][y]; it != NULL; it = it->next){    
                 if (it->state == ALIVE)
-                    printf("%d %d %d\n", x, y, it->z);
+                    out_print("%d %d %d\n", x, y, it->z);
             }
         }
     }
@@ -157,7 +156,7 @@ GraphNode*** parseFile(char* file, int* cube_size){
     int x, y, z;
     FILE* fp = fopen(file, "r");
     if(fp == NULL){
-        fprintf(stderr, "Please input a valid file name\n");
+        err_print("Please input a valid file name");
         exit(EXIT_FAILURE);
     }
     GraphNode*** graph;

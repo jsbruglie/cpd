@@ -48,6 +48,16 @@ GraphNode*** initGraph(int size);
  */
 void freeGraph(GraphNode*** graph, int size);
 
+/** @brief Prints the graph, and sorts each of the lists
+ * 
+ *  @attention Should not be called while processing generations,
+ *  as sorting breaks pointer logic with list
+ *
+ *  @param graph The graph representation    
+ *  @param size The size of the side of the cube that represents the 3D space
+ */
+void printAndSortActive(GraphNode*** graph, int cube_size);
+
 /** @brief Prints the graph to an output file
  *
  *  @attention Must not be called between the calculation of generations,
