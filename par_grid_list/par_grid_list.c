@@ -23,8 +23,6 @@ int main(int argc, char* argv[]){
     /* Create an empty list, with size 0 */
     update = listCreate();
 
-    double start = omp_get_wtime();  // Start Timer
-
     graph = parseFile(file, update, &cube_size);
     
     /* Initialize lock variables */
@@ -36,7 +34,7 @@ int main(int argc, char* argv[]){
             omp_init_lock(&(graph_lock[i][j]));
         }
     }
-
+    double start = omp_get_wtime();  // Start Timer
     for(g = 1; g <= generations; g++){
         
         /* Convert list to vector */

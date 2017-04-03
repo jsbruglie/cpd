@@ -18,7 +18,6 @@ int main(int argc, char* argv[]){
     parseArgs(argc, argv, &file, &generations);
     debug_print("ARGS: file: %s generations: %d.", file, generations);
 
-    double start = omp_get_wtime();  // Start Timer
     graph = parseFile(file, &cube_size);
 
     /* Initialize lock variables */
@@ -29,7 +28,7 @@ int main(int argc, char* argv[]){
             omp_init_lock(&(graph_lock[i][j]));
         }
     }
-
+    double start = omp_get_wtime();  // Start Timer
     for(g = 1; g <= generations; g++){
         
         #pragma omp parallel
