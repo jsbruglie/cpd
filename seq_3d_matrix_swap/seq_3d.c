@@ -19,7 +19,7 @@ int main(int argc, char* argv[]){
     int g,x,y,z;
 
     parse_args(argc, argv, &file, &generations);
-    printf("ARGS: file: %s generations: %d.\n", file, generations);
+    debug_print("ARGS: file: %s generations: %d.\n", file, generations);
 
     double start = omp_get_wtime();  // Start Timer
 
@@ -46,7 +46,7 @@ int main(int argc, char* argv[]){
     /* Print the final set of live cells */
     printActive(graph0, cube_size);
 
-    printf("Total Runtime: %f.\n", end - start);
+    time_print("%f\n", end - start);
     
     freeGraph(graph0, cube_size);
     freeGraph(graph1, cube_size);
@@ -92,7 +92,7 @@ void printActive(bool*** graph, int cube_size){
         for (y = 0; y < cube_size; ++y){
             for (z = 0; z < cube_size; ++z){
                 if (graph[x][y][z])
-                    printf("%d %d %d\n", x,y,z);
+                    out_print("%d %d %d\n", x,y,z);
             }
         }
     }

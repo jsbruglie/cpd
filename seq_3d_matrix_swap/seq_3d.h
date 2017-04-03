@@ -6,6 +6,8 @@
 #include <string.h>
 #include <omp.h>
 
+#include "debug.h"
+
 #define ALIVE 1
 #define DEAD 0
 
