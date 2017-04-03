@@ -1,5 +1,15 @@
-#ifndef LIST_H
-#define LIST_H
+/** @file hash_lists.h
+ *  @brief Function prototypes for hash_lists.c
+ *
+ *  Function prototypes for list structures
+ *
+ *  @author Pedro Abreu
+ *  @author João Borrego
+ *  @author Miguel Cardoso
+ */
+
+#ifndef HASH_LIST_H
+#define HASH_LIST_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,7 +51,7 @@ typedef struct List_Struct{
     Node* first;                /**< First node of the list */
 }List;
 
-/* NodeGraph Lists related functions */
+/* GraphNode Lists related functions */
 
 /** @brief Inserts a GraphNode in the list with value z
  *
@@ -55,6 +65,7 @@ GraphNode* graphNodeInsert(GraphNode* first, coordinate z, bool state);
  *
  *  @param first_ptr A pointer to the first node of the list
  *  @param z Value of the node to be removed
+ *  @param lock_ptr A pointer to a lock object
  *  @return The head of the updated list.
  */
 void graphNodeRemove(GraphNode** first_ptr, coordinate z, omp_lock_t* lock_ptr);
@@ -68,6 +79,10 @@ void graphNodeDelete(GraphNode* first);
 
 /** @brief Inserts a cell if not yet present and increments its number of live nighbours
  *
+ *  @param first_ptr A pointer to the first element of the GraphNode list
+ *  @param z The z coordinate of the cell
+ *  @param ptr A pointer to the inserted cell if inserted, else set to NULL
+ *
  *  @return Whether the cell was inserted in the graph or not
  */
 bool graphNodeAddNeighbour(GraphNode** first, coordinate z, GraphNode** ptr, omp_lock_t* lock_ptr);
@@ -79,38 +94,14 @@ bool graphNodeAddNeighbour(GraphNode** first, coordinate z, GraphNode** ptr, omp
  */
 void graphNodeSort(GraphNode** first_ptr);
 
+/** @brief Removes dead nodes from a GraphNode list
+ *
+ *  @param first_ptr A pointer to the first node of the list
+ *  @return Void.
+ */
+void graphListCleanup(GraphNode** first_ptr);
+
 /* Node Lists related functions*/
-
-/** @brief Creates a list structure
- *
- *  @return The resulting empty list structure, with size 0.
- */
-List* listCreate();
-
-/** @brief Returns the Node list of a given List structure
- *
- *  @param list The list structure pointer
- *  @return A pointer to the Node* list of list.
- */
-Node* listFirst(List* list);
-
-/** @brief Inserts a Node* in a given list and updates size
- *
- *  @param list The list we want to insert in
- *  @param x X coordinate of the cell to be inserted
- *  @param y Y coordinate of the cell to be inserted
- *  @param z Z coordinate of the cell to be inserted
- *  @param ptr The GraphNode* corresponding to the cell to be inserted
- *  @return Void.
- */
-void listInsert(List* list, coordinate x, coordinate y, coordinate z, GraphNode* ptr);
-
-
-/** @brief Inserts a Node* in a given list and updates size
- *
- *  @return Void.
- */
-void listInsertLock(List* list, coordinate x, coordinate y, coordinate z, GraphNode* ptr, omp_lock_t* lock_ptr);
 
 /** @brief Inserts a Node in a Node list
  *
@@ -123,15 +114,6 @@ void listInsertLock(List* list, coordinate x, coordinate y, coordinate z, GraphN
  */
 Node* nodeInsert(Node* first, coordinate x, coordinate y, coordinate z, GraphNode* ptr);
 
-/** @brief Removes a Node* from a given list structure and updates size
- *
- *  @param x X coordinate
- *  @param y Y coordinate
- *  @param z Z coordinate
- *  @return Void.
- */
-void listRemove(List* list, coordinate x, coordinate y, coordinate z);
-
 /** @brief Removes a Node* from a given Node list
  *
  *  @param first_ptr A pointer to the first node of the list
@@ -142,22 +124,11 @@ void listRemove(List* list, coordinate x, coordinate y, coordinate z);
  */
 bool nodeRemove(Node** first_ptr, coordinate x, coordinate y, coordinate z);
 
-/** @brief Deletes a List strucutre
+/** @brief Frees a Node* list
  *
- *  @param list The list to be deleted
+ *  @param first The first node of the list
  *  @return Void.
  */
-void listDelete(List* list);
-
-/** @brief Removes scheduled entries from a List structure
- *
- *  Removes entries in Node* list with x = REMOVE
- *
- *  @param list The list to be cleaned
- *  @return Void.
- */
-void listCleanup(List* list);
-
-void graphListCleanup(GraphNode** head);
+void nodeListFree(Node* first);
 
 #endif

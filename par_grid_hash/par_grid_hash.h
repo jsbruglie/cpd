@@ -1,7 +1,7 @@
-/** @file seq_grid_hash.h
+/** @file par_grid_hash.h
  *  @brief Function prototypes for par_grid_hash.c
  *
- *  Sequential version with 2D Matrix with lists graph representation
+ *  Parallel version with 2D Matrix with lists graph representation
  *  with a hashtable for quick access to live nodes and neighbours
  *
  *  @author Pedro Abreu
@@ -9,15 +9,15 @@
  *  @author Miguel Cardoso
  */
 
-#ifndef SEQUENTIAL_GRID_HASH_H
-#define SEQUENTIAL_GRID_HASH_H
+#ifndef SEQUENTIAL_H
+#define SEQUENTIAL_H
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <omp.h>
 
-#include "seq_hash.h"
+#include "hash.h"
 #include "debug.h"
 
 #define ALIVE 1             /**< Macro for representing a live cell */

@@ -1,4 +1,4 @@
-#include "seq_grid_hash.h"
+#include "par_grid_hash.h"
 
 int main(int argc, char* argv[]){
 
@@ -26,6 +26,15 @@ int main(int argc, char* argv[]){
     graph = parseFile(input_name, hashtable, &cube_size);
     //debug_print("Hashtable: Occupation %.1f, Average %.2f elements per bucket", (hashtable->occupied*1.0) / hashtable->size, (hashtable->elements*1.0) /  hashtable->occupied);
 
+    /* Initialize lock variables */
+    graph_lock = (omp_lock_t**)malloc(cube_size * sizeof(omp_lock_t*));
+    for(i = 0; i < cube_size; i++){
+        graph_lock[i] = (omp_lock_t*) malloc(cube_size * sizeof(omp_lock_t));
+        for(j = 0; j < cube_size; j++){
+            omp_init_lock(&(graph_lock[i][j]));
+        }
+    }
+
     double start = omp_get_wtime();  // Start Timer
     
     /* Generations */
@@ -51,6 +60,7 @@ int main(int argc, char* argv[]){
             }
         }
 
+        #pragma omp parallel for private(i, j)
         /* Notify each of the neighbours, inserting them in the graph if needed */
         for (i = 0; i < num_alive; i++){
             
@@ -72,7 +82,7 @@ int main(int argc, char* argv[]){
 
             /* When a node is inserted in the graph, a pointer to it is stored in the hashtable */
             for(j = 0; j < 6; j++){
-                if(graphNodeAddNeighbour( &(graph [c[j][X]] [c[j][Y]]), c[j][Z], &ptr)){
+                if(graphNodeAddNeighbour( &(graph [c[j][X]] [c[j][Y]]), c[j][Z], &ptr, &(graph_lock [c[j][X]] [c[j][Y]]))){
                     neighbour_vector[i][j] = nodeInsert(NULL, c[j][X], c[j][Y], c[j][Z], ptr);
                 }else{
                     neighbour_vector[i][j] = NULL;
@@ -80,6 +90,7 @@ int main(int argc, char* argv[]){
             }
         }
 
+        #pragma omp parallel for private(it, i, j)
         /* Determine the next state of each of the cells */
         for(i = 0; i < num_alive; i++){
             
@@ -90,7 +101,7 @@ int main(int argc, char* argv[]){
             if(it->ptr->state == ALIVE){
                 if(live_neighbours < 2 || live_neighbours > 4){
                     it->ptr->state = DEAD;
-                    graphNodeRemove(&(graph[it->x][it->y]), it->z);
+                    graphNodeRemove(&(graph[it->x][it->y]), it->z, &(graph_lock[it->x][it->y]));
                     hashtableRemove(hashtable, it->x, it->y, it->z);
                 }                        
             }
@@ -107,7 +118,7 @@ int main(int argc, char* argv[]){
                             hashtableWrite(hashtable, it->x, it->y, it->z, it->ptr);
                         }
                         else{
-                            graphNodeRemove(&(graph[it->x][it->y]), it->z);
+                            graphNodeRemove(&(graph[it->x][it->y]), it->z, &(graph_lock[it->x][it->y]));
                         }
                     }
                 }
@@ -133,7 +144,12 @@ int main(int argc, char* argv[]){
     
     /* Free resources */
     freeGraph(graph, cube_size);
-    hashtableFree(hashtable);
+    hashtableFree(hashtable);    
+    for(i = 0; i < cube_size; i++){
+        for(j=0; j<cube_size; j++){
+            omp_destroy_lock(&(graph_lock[i][j]));
+        }
+    }
     free(input_name);
 
     return 0;
@@ -237,7 +253,6 @@ int getAlive(char* file){
     FILE* fp = fopen(file, "r");
     int alive_num = 0;
     if (fp == NULL){
-        err_print("Please input a valid file name");
         return EXIT_FAILURE;
     }
     while(!feof(fp)){
@@ -246,10 +261,6 @@ int getAlive(char* file){
         }
     }
     fclose(fp);
-    if (alive_num == 0){
-        err_print("Please provide a valid input file!");
-        exit(EXIT_FAILURE);
-    }
     return alive_num - 1;
 }
 
@@ -260,7 +271,7 @@ GraphNode*** parseFile(char* input_name, Hashtable* hashtable, int* cube_size){
     int x, y, z;
     FILE* fp = fopen(input_name, "r");
     if(fp == NULL){
-        err_print("Please input a valid file name!");
+        err_print("Please input a valid file name");
         exit(EXIT_FAILURE);
     }
     GraphNode*** graph;

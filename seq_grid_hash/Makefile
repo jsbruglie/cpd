@@ -1,4 +1,4 @@
-OBJECT_FILES = seq_grid_hash.o hash.o lists.o
+OBJECT_FILES = seq_grid_hash.o seq_hash.o seq_hash_lists.o
 CFLAGS = -ggdb -Wall
 LIBS =
 CC = gcc -fopenmp  
