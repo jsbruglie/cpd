@@ -1,0 +1,7 @@
+datafile, filename, generations, threads, average_time
+s5e50.in, seq_grid_list, 10, 1, 0.0007796
+s20e400.in, seq_grid_list, 500, 1, 3.48107
+s50e5k.in, seq_grid_list, 300, 1, 208.584
+s150e10k.in, seq_grid_list, 1000, 1, 2.08588
+s200e50k.in, seq_grid_list, 1000, 1, 7.54951
+s500e300k.in, seq_grid_list, 2000, 1, 44.6795
