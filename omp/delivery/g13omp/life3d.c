@@ -1,10 +1,3 @@
-/** @file life3d.c
- *  @brief Grid bruteforce in C
- *  @author Pedro Abreu
- *  @author João Borrego
- *  @author Miguel Cardoso
- */
-
 #include "life3d.h"
 
 int main(int argc, char* argv[]){

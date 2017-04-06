@@ -62,7 +62,7 @@ int main(int argc, char* argv[]){
                     }
                 }
             }
-            /* Remove dead nodes from the graph once in a while (like g%5) */
+            /* Remove dead nodes from the graph every REMOVAL_PERIOD generations */
             if(g % REMOVAL_PERIOD == 0){
                 #pragma omp for private(i, j)
                 for(i = 0; i < cube_size; i++){

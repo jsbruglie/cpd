@@ -1,5 +1,15 @@
-#ifndef LIST_H
-#define LIST_H
+/** @file lists.h
+ *  @brief Function prototypes for lists.c
+ *
+ *  Function prototypes for list structure
+ *
+ *  @author Pedro Abreu
+ *  @author João Borrego
+ *  @author Miguel Cardoso
+ */
+
+#ifndef LISTS_H
+#define LISTS_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,11 +18,8 @@
 #define true 1
 #define false 0
 
-#define ALIVE 1
-#define DEAD 0
-
-#define REMOVE -1   /**< Used to signal that an entry in list should be removed */
-#define UPDATE 1    /**< Used to force a GraphNode insertion to simply update an existing node */
+#define ALIVE 1 /**< Macro for representing a live cell */
+#define DEAD 0  /**< Macro for representing a dead cell */
 
 typedef unsigned char bool;
 typedef int coordinate;
@@ -31,6 +38,7 @@ typedef struct Graph_Node_Struct{
  *
  *  @param first The first node of the list
  *  @param z Value of the node to be inserted
+ *  @param state The state of the node to be inserted
  *  @return The head of the updated list.
  */
 GraphNode* graphNodeInsert(GraphNode* first, coordinate z, bool state);
@@ -39,7 +47,7 @@ GraphNode* graphNodeInsert(GraphNode* first, coordinate z, bool state);
  *
  *  @param first_ptr A pointer to the first node of the list
  *  @param z Value of the node to be removed
- *  @return The head of the updated list.
+ *  @return Void.
  */
 void graphNodeRemove(GraphNode** first_ptr, coordinate z);
 
@@ -52,20 +60,24 @@ void graphNodeDelete(GraphNode* first);
 
 /** @brief Inserts a cell if not yet present and increments its number of live nighbours
  *
+ *  @param first_ptr A pointer to the first node of the list
+ *  @param z Value of the node to be visited
  *  @return Whether the cell was inserted in the graph or not
  */
-bool graphNodeAddNeighbour(GraphNode** first, coordinate z);
+bool graphNodeAddNeighbour(GraphNode** first_ptr, coordinate z);
 
 /** @brief Sorts a GraphNode list by ascending order of coordinate z
+ *
+ *  @attention Pointers are not reassigned. Instead content is swapped between nodes.
  *
  *  @param first_ptr A pointer to the pointer to the first GraphNode of the list
  *  @return Void.
  */
 void graphNodeSort(GraphNode** first_ptr);
 
-/** @brief Cleans up a graph list
+/** @brief Deletes every node in the list with a DEAD state
  *
- *  @param head A pointer to the pointer of the graph list we want to clean up
+ *  @param first_ptr A pointer to the first node of the list
  *  @return Void.
  */
 void graphListCleanup(GraphNode** head);

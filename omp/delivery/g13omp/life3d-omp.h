@@ -1,5 +1,5 @@
-/** @file par_grid.h
- *  @brief Function prototypes for par_grid.c
+/** @file life3d-omp.h
+ *  @brief Function prototypes for life3d-omp.c
  *
  *  Parallel implementation with 2D Matrix of lists,
  *  with a brute force iteration
@@ -9,8 +9,8 @@
  *  @author Miguel Cardoso
  */
 
-#ifndef PARALLEL_GRID_H
-#define PARALLEL_GRID_H
+#ifndef LIFE_3D_OMP_H
+#define LIFE_3D_OMP_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,12 +36,14 @@ typedef unsigned char bool;
  *  @param x X coordinate
  *  @param y Y coordinate
  *  @param z Z coordinate
+ *  @return Void.
  */
 void visitNeighbours(GraphNode*** graph, omp_lock_t** graph_lock, int cube_size, coordinate x, coordinate y, coordinate z);
 
 /** @brief Initializes the graph representation structure
  *  
- *  @param cube_size The size of the side of the cube that represents the 3D space
+ *  @param size The size of the side of the cube that represents the 3D space
+ *  @return The initialized, yet empty, graph representation.
  */
 GraphNode*** initGraph(int cube_size);
 
@@ -53,11 +55,9 @@ void freeGraph(GraphNode*** graph, int cube_size);
 
 /** @brief Prints the graph, and sorts each of the lists
  *
- *  @attention Must not be called between the calculation of generations,
- *  as it breaks the hashtable references to graph nodes!
- *
  *  @param graph The graph representation    
  *  @param size The size of the side of the cube that represents the 3D space
+ *  @return Void.
  */
 void printAndSortActive(GraphNode*** graph, int cube_size);
 
@@ -73,7 +73,7 @@ void printAndSortActive(GraphNode*** graph, int cube_size);
  */
 void parseArgs(int argc, char* argv[], char** file, int* generations);
 
-/** @brief Parse input file contents to graph and hashtable 
+/** @brief Parse input file contents 
  *
  *  @param file Filename string
  *  @param list List for keeping track of live cells and neighbours
