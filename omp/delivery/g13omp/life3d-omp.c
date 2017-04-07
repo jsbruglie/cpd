@@ -91,6 +91,7 @@ int main(int argc, char* argv[]){
     free(graph_lock);
     freeGraph(graph, cube_size);
     free(file);
+    return(EXIT_SUCCESS);
 }
 
 void visitNeighbours(GraphNode*** graph, omp_lock_t** graph_lock, int cube_size, coordinate x, coordinate y, coordinate z){

@@ -67,6 +67,7 @@ int main(int argc, char* argv[]){
 
     freeGraph(graph, cube_size);
     free(file);
+    return(EXIT_SUCCESS);
 }
 
 void visitNeighbours(GraphNode*** graph, int cube_size, coordinate x, coordinate y, coordinate z){
