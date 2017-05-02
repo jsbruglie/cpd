@@ -5,159 +5,7 @@
 *  @author Miguel Cardoso
 */
 /*+++++++++++++++++++++++++++++++++++++++++++++++++ INCLUDES +++++++++++++++++++++++++++++++++++++++++++++++++++*/
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <mpi.h>
-
-/*+++++++++++++++++++++++++++++++++++++++++++++++++ MACROS +++++++++++++++++++++++++++++++++++++++++++++++++++*/
-#define BUFFER_SIZE 200
-#define INF 10000000
-#define REMOVAL_PERIOD 5
-#define ROOT 0
-#define ALIVE 1
-#define DEAD 0
-#define debug_print(M, ...) printf("DEBUG: %s:%d:%s: " M "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
-#define true 1
-#define false 0
-typedef unsigned char bool;
-/*+++++++++++++++++++++++++++++++++++++++++++++++++ BLOCK MACROS +++++++++++++++++++++++++++++++++++++++++++++++++++*/
-#define BLOCK_LOW(rank,numprocs,size) 	((rank)*(size)/(numprocs))
-#define BLOCK_HIGH(rank,numprocs,size) 	(BLOCK_LOW((rank)+1,numprocs,size)-1)
-#define BLOCK_SIZE(rank,numprocs,size) 	(BLOCK_HIGH(rank,numprocs,size)-BLOCK_LOW(rank,numprocs,size)+1)
-#define BLOCK_OWNER(element,numprocs,size) ((numprocs*(element+1)-1)/size)
-
-/*+++++++++++++++++++++++++++++++++++++++++++++++++ STRUCTURES +++++++++++++++++++++++++++++++++++++++++++++++++++*/
-typedef struct _node{
-    int z;
-    int y;
-    int x;
-}node;
-
-/** @brief Structure for storing a node of the graph */
-typedef struct _graph_node{
-    int z;                   /**< z coordinate, x and y are implicitly mapped */
-    int state;                     /**< State of a node cell (DEAD or ALIVE) */
-    unsigned char neighbours;       /**< Neighbour counter */
-    struct _graph_node* next; /**< Pointer to the next entry in the list */
-}graph_node;
-
-
-void parseArgs(int argc, char* argv[], char** file, int* generations){
-    if (argc == 3){
-        char* file_name = malloc(sizeof(char) * (strlen(argv[1]) + 1));
-        strcpy(file_name, argv[1]);
-        *file = file_name;
-
-        *generations = atoi(argv[2]);
-        if (*generations > 0 && file_name != NULL)
-        return;
-    }
-    printf("Usage: %s [data_file.in] [number_generations]", argv[0]);
-    exit(EXIT_FAILURE);
-}
-
-graph_node* graphNodeInsert(graph_node* first, int z, int state){
-
-    graph_node* new = (graph_node*) malloc(sizeof(graph_node));
-    if (new == NULL){
-        fprintf(stderr, "Malloc failed. Memory full");
-        exit(EXIT_FAILURE);
-    }
-    new->z = z;
-    new->state = state;
-    new->neighbours = 0;
-    new->next = first;
-    return new;
-}
-
-graph_node*** initGraph(int size){
-
-    int i,j;
-    graph_node*** graph = (graph_node***) malloc(sizeof(graph_node**) * size);
-
-    for (i = 0; i < size; i++){
-        graph[i] = (graph_node**) malloc(sizeof(graph_node*) * size);
-        for (j = 0; j < size; j++){
-            graph[i][j] = NULL;
-        }
-    }
-    return graph;
-}
-
-graph_node*** initLocalGraph(int bsize, int size){
-
-    int i,j;
-    graph_node*** graph = (graph_node***) malloc(sizeof(graph_node**) * bsize);
-
-    for (i = 0; i < bsize; i++){
-        graph[i] = (graph_node**) malloc(sizeof(graph_node*) * size);
-        for (j = 0; j < size; j++){
-            graph[i][j] = NULL;
-        }
-    }
-    return graph;
-}
-
-bool graphNodeAddNeighbour(graph_node** first, int z){
-    graph_node* it;
-    /* Search for the node */
-    for(it = *first; it != NULL; it = it->next){
-        if (it->z == z){
-            it->neighbours++;
-            return false;
-        }
-    }
-
-    /* Need to insert the node */
-    graph_node* new = graphNodeInsert(*first, z, DEAD);
-    new->neighbours++;
-    *first = new;
-    return true;
-}
-
-void visitNeighbours(graph_node*** graph, int cube_size, int x, int y, int z){
-
-    graph_node* ptr;
-    int x1, x2, y1, y2, z1, z2;
-    x1 = (x+1)%cube_size; x2 = (x-1) < 0 ? (cube_size-1) : (x-1);
-    y1 = (y+1)%cube_size; y2 = (y-1) < 0 ? (cube_size-1) : (y-1);
-    z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
-    /* If a cell is visited for the first time, add it to the update list, for fast access */
-    graphNodeAddNeighbour(&(graph[x1][y]), z);
-    graphNodeAddNeighbour(&(graph[x2][y]), z);
-    graphNodeAddNeighbour(&(graph[x][y1]), z);
-    graphNodeAddNeighbour(&(graph[x][y2]), z);
-    graphNodeAddNeighbour(&(graph[x][y]), z1);
-    graphNodeAddNeighbour(&(graph[x][y]), z2);
-}
-
-void graphListCleanup(graph_node** head){
-    graph_node *temp, *prev;
-    if(*head != NULL){
-        temp = *head;
-        /* Delete from the beginning */
-        while(temp != NULL && temp->state == DEAD){
-            *head = temp->next;
-            free(temp);
-            temp = *head;
-        }
-        /*Delete from the middle*/
-        while(temp != NULL){
-            while (temp != NULL && temp->state != DEAD){
-                prev = temp;
-                temp = temp->next;
-            }
-            if(temp == NULL)
-            return;
-
-            prev->next = temp->next;
-            free(temp);
-            temp = prev->next;
-        }
-    }
-}
+#include "dist_grid.h"
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++ MAIN +++++++++++++++++++++++++++++++++++++++++++++++++++*/
 int main(int argc, char **argv) {
@@ -174,10 +22,12 @@ int main(int argc, char **argv) {
     int x,y,z;
     int generations; /**< Generations */
     int* sendcounts, *displs = NULL;;
+    int total_length;
 
     int local_graph_length;
     node* lg_send;
-    int* lc_lengths, lg_displs;
+    int* lc_lengths;
+    int* lg_displs;
     node* all_lg;
 
     /*Communication buffers*/
@@ -208,7 +58,7 @@ int main(int argc, char **argv) {
     MPI_Type_commit(&MPI_CELL);
 
     if(rank == ROOT){
-        /***************************************************** RAN BY ROOT *********************************************************/
+/*************************************************************RAN BY ROOT *************************************************************************************/
         /***************************************************** PARSE COMMAND LINE ARGUMENTS *********************************************************/
         char* file;   /**< Input data file name */
         parseArgs(argc, argv, &file, &generations);
@@ -224,7 +74,8 @@ int main(int argc, char **argv) {
         sscanf(buffer,"%d", &size);
         /************************************************** BROADCAST_SIZE **************************************************/
         MPI_Bcast(&size, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
-        printf("@Rank %d - Received size: %d\n", rank, size); fflush(stdout);
+        rank_print(rank); debug_print("Received size: %d\n", size);
+        //printf("@Rank %d - Received size: %d\n", rank, size); fflush(stdout);
 
         sendcounts 	= (int *) malloc(nprocs * sizeof(int));
         for(i = 0; i < nprocs; i++){
@@ -301,11 +152,21 @@ int main(int argc, char **argv) {
             int x = receivebuffer[i].x - BLOCK_LOW(rank, nprocs, size);
             int y = receivebuffer[i].y;
             //printf("Seg %d %d\n", x, y);
+            local_graph[x][y] = graphNodeInsert(local_graph[x][y], receivebuffer[i].z, ALIVE);
         }
 
 
-
         for(g=0; g<generations; g++){
+
+            //Calculate neighbours for all (excluding in our side frontiers - can't add wrap arounds)
+            for(x = 1; x < (BLOCK_SIZE(rank, nprocs, size) - 1); x++){
+                for(y = 0; y < size; y++){
+                    for(it = local_graph[x][y]; it != NULL; it = it->next){
+                        if(it->state == ALIVE)
+                        visitNeighbours(local_graph, size, x, y, it->z);
+                    }
+                }
+            }
 
             //Compute frontier sizes (go over the local_graph at 0 and BLOCK_SIZE)
             low_frontier_count=0;
@@ -324,6 +185,7 @@ int main(int argc, char **argv) {
                     }
                 }
             }
+
             printf("@Rank %d - LOW FRONTIER COUNT: %d, HIGH FRONTIER COUNT: %d\n", rank, low_frontier_count, high_frontier_count);
 
 
@@ -331,15 +193,7 @@ int main(int argc, char **argv) {
             sending_low_frontier = (node *) calloc(low_frontier_count, sizeof(node));
             sending_high_frontier = (node *) calloc(high_frontier_count, sizeof(node));
 
-            //Calculate neighbours for all (excluding in our side frontiers - can't add wrap arounds)
-            for(x = 1; x < (BLOCK_SIZE(rank, nprocs, size) - 1); x++){
-                for(y = 0; y < size; y++){
-                    for(it = local_graph[x][y]; it != NULL; it = it->next){
-                        if(it->state == ALIVE)
-                        visitNeighbours(local_graph, size, x, y, it->z);
-                    }
-                }
-            }
+
             //Add our nodes to our frontiers
             int low_frontier_size=0,high_frontier_size=0;
             for(int y=0; y<size; y++){
@@ -488,12 +342,6 @@ int main(int argc, char **argv) {
                 }
             }
         }
-
-        //Send the length of that array to ROOT
-        lc_lengths = (int*)malloc(sizeof(int)*nprocs);
-        lg_displs = (int*)malloc(sizeof(int)*nprocs);
-        MPI_Gather(local_graph_length, 1, MPI_INT, lc_lengths, nprocs, MPI_INT, ROOT, MPI_COMM_WORLD);
-
         //Allocate our array and copy everything to it
         lg_send = (node*)malloc(sizeof(node) * local_graph_length);
         local_graph_length=0;
@@ -509,16 +357,26 @@ int main(int argc, char **argv) {
                 }
             }
         }
-        int total_length = 0;
+
+        //Send the length of that array to ROOT
+        lc_lengths = (int*)malloc(sizeof(int)*nprocs);
+        lc_lengths[ROOT] = local_graph_length; //lc_length of root was already computed
+        MPI_Gather(&local_graph_length, 1, MPI_INT, lc_lengths, nprocs, MPI_INT, ROOT, MPI_COMM_WORLD);
+        //We should have lc lengths here (from each proc)
+
+        lg_displs = (int*)malloc(sizeof(int)*nprocs);
+        total_length = 0;
         for(i=0; i<nprocs; i++){
             lg_displs[i]=total_length;
             total_length+=lc_lengths[i];
         }
         all_lg = (node*)malloc(sizeof(node) * total_length);
-        //Send the actual array to ROOT
-        MPI_Gatherv(lg_send, local_graph_length, MPI_CELL, all_lg, total_length, lg_displs, ROOT, MPI_COMM_WORLD);
-        //Transform lg_all to global graph
-        initial_global_graph = initGraph(size);
+        //Root receiving all the arrays
+        MPI_Gatherv(lg_send, local_graph_length, MPI_CELL, all_lg, lc_lengths, lg_displs, MPI_CELL, ROOT, MPI_COMM_WORLD);
+
+        /***************ROOT SHOULD HAVE ALL ARRAYS HERE***********************/
+        //Transform all_lg to final global graph
+        final_global_graph = initGraph(size);
         for(i=0; i<total_length; i++){
             x = all_lg[i].x;
             y = all_lg[i].y;
@@ -528,9 +386,8 @@ int main(int argc, char **argv) {
         //Print to a file for checking
 
         fclose(fp);
-
+/*************************************************************RAN BY ALL OTHER PROCS *************************************************************************************/
     }else{
-        /***************************************************** OTHER PROCS *********************************************************/
         MPI_Bcast(&size, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
         printf("Proc %d received size: %d\n", rank, size);fflush(stdout);
 
@@ -555,17 +412,26 @@ int main(int argc, char **argv) {
         printf("BLOCK_LOW: %d, BLOCK_HIGH: %d, BLOCK_SIZE: %d\n", BLOCK_LOW(rank,nprocs,size), BLOCK_HIGH(rank,nprocs,size), BLOCK_SIZE(rank,nprocs,size));
 
         local_graph = initLocalGraph(BLOCK_SIZE(rank,nprocs,size), size);
-        printf("Created local graph...\n");
 
+        printf("Created local graph...\n");
         int low_frontier_count=0;
         int high_frontier_count=0;
-        for(int i=0; i<cells_receive; i++){
+        for(i=0; i<cells_receive; i++){
             int x = receivebuffer[i].x - BLOCK_LOW(rank, nprocs, size);
             int y = receivebuffer[i].y;
             //printf("Seg %d %d\n", x, y);
             local_graph[x][y] = graphNodeInsert(local_graph[x][y], receivebuffer[i].z, ALIVE);
         }
         for(g=0; g<generations; g++){
+            //Calculate neighbours for all (excluding in our side frontiers - can't add wrap arounds)
+            for(x = 1; x < (BLOCK_SIZE(rank, nprocs, size) - 1); x++){
+                for(y = 0; y < size; y++){
+                    for(it = local_graph[x][y]; it != NULL; it = it->next){
+                        if(it->state == ALIVE)
+                        visitNeighbours(local_graph, size, x, y, it->z);
+                    }
+                }
+            }
             //Compute size of the frontiers
             //Compute frontier sizes (go over the local_graph at 0 and BLOCK_SIZE)
             low_frontier_count=0;
@@ -589,18 +455,9 @@ int main(int argc, char **argv) {
             //Go over the local graph and compute the number to assign to each frontier
 
             //Alloc frontiers and copy nodes to it
-            sending_low_frontier = (node *) malloc(low_frontier_count, sizeof(node)); //Could use calloc here, not sure if issue
-            sending_high_frontier = (node *) malloc(high_frontier_count, sizeof(node)); //Could use calloc here, not sure if issue
+            sending_low_frontier = (node *) calloc(low_frontier_count,sizeof(node)); //Could use calloc here, not sure if issue
+            sending_high_frontier = (node *) calloc(high_frontier_count,sizeof(node)); //Could use calloc here, not sure if issue
 
-            //Calculate neighbours for all (excluding in our side frontiers - can't add wrap arounds)
-            for(x = 1; x < (BLOCK_SIZE(rank, nprocs, size) - 1); x++){
-                for(y = 0; y < size; y++){
-                    for(it = local_graph[x][y]; it != NULL; it = it->next){
-                        if(it->state == ALIVE)
-                        visitNeighbours(local_graph, size, x, y, it->z);
-                    }
-                }
-            }
             //Add our nodes to our frontiers
             int low_frontier_size=0,high_frontier_size=0;
             for(int y=0; y<size; y++){
@@ -627,8 +484,6 @@ int main(int argc, char **argv) {
             int high_rank = (rank+1) >= nprocs ? (0) : (rank+1);
             printf("@Rank %d - Low rank: %d High rank: %d\n", rank, low_rank, high_rank);
 
-
-
             //Send our frontiers to the low and then to the high rank
             printf("Rank %d starting probe on high rank: %d...\n", rank, high_rank);
             MPI_Status s1;
@@ -648,6 +503,7 @@ int main(int argc, char **argv) {
             MPI_Recv(receiving_low_frontier, low_number_amount, MPI_CELL, low_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
             //We have all the frontiers here
+            printf("RANK %d HAS ALL IT'S FRONTIERS\n", rank);
             //Go over our side of the high frontier and take in consideration all those that are on the high frontier that was sent to us
             for(y=0; y < size; y++){
                 for(it=local_graph[(BLOCK_SIZE(rank, nprocs, size) - 1)][y]; it!=NULL; it=it->next){
@@ -705,8 +561,8 @@ int main(int argc, char **argv) {
             //Compute the next state of all our nodes
             for(i = 0; i < BLOCK_SIZE(rank,nprocs,size); i++){
                 for(j = 0; j < size; j++){
-                    for (it = graph[i][j]; it != NULL; it = it->next){
-                        live_neighbours = it->neighbours;
+                    for (it = local_graph[i][j]; it != NULL; it = it->next){
+                        int live_neighbours = it->neighbours;
                         it->neighbours = 0;
                         if(it->state == ALIVE){
                             if(live_neighbours < 2 || live_neighbours > 4){
@@ -729,7 +585,7 @@ int main(int argc, char **argv) {
             //Do a cleanup (for eficiency)
             if(g % REMOVAL_PERIOD == 0){
                 for(i = 0; i < BLOCK_SIZE(rank,nprocs,size); i++){
-                    for(j = 0; j < cube_size; j++){
+                    for(j = 0; j < size; j++){
                         graph_node ** list = &local_graph[i][j];
                         graphListCleanup(list);
                     }
@@ -749,7 +605,8 @@ int main(int argc, char **argv) {
             }
         }
         //Send the length of that array to ROOT
-        MPI_Gather(local_graph_length, 1, MPI_INT, NULL, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
+        MPI_Gather(&local_graph_length, 1, MPI_INT, lc_lengths, nprocs, MPI_INT, ROOT, MPI_COMM_WORLD);
+        //MPI_Gather(local_graph_length, 1, MPI_INT, NULL, 0, MPI_INT, ROOT, MPI_COMM_WORLD);
         //Allocate our array and copy everything to it
         lg_send = (node*)malloc(sizeof(node) * local_graph_length);
         local_graph_length=0;
@@ -757,7 +614,7 @@ int main(int argc, char **argv) {
             for(y = 0; y < size; y++){
                 for(it = local_graph[x][y]; it != NULL; it = it->next){
                     if(it->state == ALIVE){
-                        lg_send[local_graph_length].x = x + BLOCK_LOW(rank, nprocs, size);
+                        lg_send[local_graph_length].x = x + BLOCK_LOW(rank, nprocs, size); //add the offset so the x value is the real value (not the local)
                         lg_send[local_graph_length].y = y;
                         lg_send[local_graph_length].z = it->z;
                         local_graph_length++;
@@ -766,14 +623,128 @@ int main(int argc, char **argv) {
             }
         }
         //Send the actual array to ROOT
-        MPI_Gatherv(lg_send, local_graph_length, MPI_CELL, NULL, 0, lg_displs, ROOT, MPI_COMM_WORLD);
+        //MPI_Gatherv(lg_send, local_graph_length, MPI_CELL, NULL, 0, lg_displs, ROOT, MPI_COMM_WORLD);
+        MPI_Gatherv(lg_send, local_graph_length, MPI_CELL, all_lg, lc_lengths, lg_displs, MPI_CELL, ROOT, MPI_COMM_WORLD);
         //Free the temporary array to send the local_graph
         free(lg_send);
     }
 
-
-
     MPI_Barrier(MPI_COMM_WORLD);
 
     MPI_Finalize();
+}
+
+void parseArgs(int argc, char* argv[], char** file, int* generations){
+    if (argc == 3){
+        char* file_name = malloc(sizeof(char) * (strlen(argv[1]) + 1));
+        strcpy(file_name, argv[1]);
+        *file = file_name;
+
+        *generations = atoi(argv[2]);
+        if (*generations > 0 && file_name != NULL)
+        return;
+    }
+    printf("Usage: %s [data_file.in] [number_generations]", argv[0]);
+    exit(EXIT_FAILURE);
+}
+
+graph_node* graphNodeInsert(graph_node* first, int z, int state){
+
+    graph_node* new = (graph_node*) malloc(sizeof(graph_node));
+    if (new == NULL){
+        fprintf(stderr, "Malloc failed. Memory full");
+        exit(EXIT_FAILURE);
+    }
+    new->z = z;
+    new->state = state;
+    new->neighbours = 0;
+    new->next = first;
+    return new;
+}
+
+graph_node*** initGraph(int size){
+
+    int i,j;
+    graph_node*** graph = (graph_node***) malloc(sizeof(graph_node**) * size);
+
+    for (i = 0; i < size; i++){
+        graph[i] = (graph_node**) malloc(sizeof(graph_node*) * size);
+        for (j = 0; j < size; j++){
+            graph[i][j] = NULL;
+        }
+    }
+    return graph;
+}
+
+graph_node*** initLocalGraph(int bsize, int size){
+
+    int i,j;
+    graph_node*** graph = (graph_node***) malloc(sizeof(graph_node**) * bsize);
+
+    for (i = 0; i < bsize; i++){
+        graph[i] = (graph_node**) malloc(sizeof(graph_node*) * size);
+        for (j = 0; j < size; j++){
+            graph[i][j] = NULL;
+        }
+    }
+    return graph;
+}
+
+bool graphNodeAddNeighbour(graph_node** first, int z){
+    graph_node* it;
+    /* Search for the node */
+    for(it = *first; it != NULL; it = it->next){
+        if (it->z == z){
+            it->neighbours++;
+            return false;
+        }
+    }
+
+    /* Need to insert the node */
+    graph_node* new = graphNodeInsert(*first, z, DEAD);
+    new->neighbours++;
+    *first = new;
+    return true;
+}
+
+void visitNeighbours(graph_node*** graph, int cube_size, int x, int y, int z){
+
+    graph_node* ptr;
+    int x1, x2, y1, y2, z1, z2;
+    x1 = (x+1)%cube_size; x2 = (x-1) < 0 ? (cube_size-1) : (x-1);
+    y1 = (y+1)%cube_size; y2 = (y-1) < 0 ? (cube_size-1) : (y-1);
+    z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
+    /* If a cell is visited for the first time, add it to the update list, for fast access */
+    graphNodeAddNeighbour(&(graph[x1][y]), z);
+    graphNodeAddNeighbour(&(graph[x2][y]), z);
+    graphNodeAddNeighbour(&(graph[x][y1]), z);
+    graphNodeAddNeighbour(&(graph[x][y2]), z);
+    graphNodeAddNeighbour(&(graph[x][y]), z1);
+    graphNodeAddNeighbour(&(graph[x][y]), z2);
+}
+
+void graphListCleanup(graph_node** head){
+    graph_node *temp, *prev;
+    if(*head != NULL){
+        temp = *head;
+        /* Delete from the beginning */
+        while(temp != NULL && temp->state == DEAD){
+            *head = temp->next;
+            free(temp);
+            temp = *head;
+        }
+        /*Delete from the middle*/
+        while(temp != NULL){
+            while (temp != NULL && temp->state != DEAD){
+                prev = temp;
+                temp = temp->next;
+            }
+            if(temp == NULL)
+            return;
+
+            prev->next = temp->next;
+            free(temp);
+            temp = prev->next;
+        }
+    }
 }
