@@ -63,5 +63,18 @@ void visitNeighbours(graph_node*** graph, int cube_size, int x, int y, int z);
 
 void graphListCleanup(graph_node** head);
 
+void countFrontierSize(int rank, int nprocs, int size, graph_node*** local_graph, int* low_frontier_count, int* high_frontier_count);
+
+void createFrontiers(int rank, int nprocs, int size, graph_node* it, graph_node*** local_graph, node** sending_low_frontier, node** sending_high_frontier);
+
+void computeAdjacentRanks(int rank, int nprocs, int* low_rank, int* high_rank);
+
+void printAndSortActive(graph_node*** graph, int size);
+
+void graphNodeSort(graph_node** first_ptr);
+
+void freeGraph(graph_node*** graph, int size);
+
+void graphNodeDelete(graph_node* first);
 
 #endif
