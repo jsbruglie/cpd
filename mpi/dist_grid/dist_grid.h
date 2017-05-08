@@ -17,15 +17,20 @@
 #define DEAD 0
 #define true 1
 #define false 0
-#define VERBOSE 1
+//#define VERBOSE 1
 
 #ifdef VERBOSE
 #define debug_print(M, ...) do {printf("DEBUG: %s:%d:%s: " M "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__); fflush(stdout);} while(0)
+#else
+#define debug_print(M, ...)
 #endif
 
 #ifdef VERBOSE
 #define rank_print(a) do{ printf("@RANK %d - ", a); fflush(stdout);}while(0)
+#else
+#define rank_print(a)
 #endif
+
 /*+++++++++++++++++++++++++++++++++++++++++++++++++ BLOCK MACROS +++++++++++++++++++++++++++++++++++++++++++++++++++*/
 #define BLOCK_LOW(rank,numprocs,size) 	((rank)*(size)/(numprocs))
 #define BLOCK_HIGH(rank,numprocs,size) 	(BLOCK_LOW((rank)+1,numprocs,size)-1)
