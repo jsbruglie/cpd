@@ -66,6 +66,7 @@ int main(int argc, char **argv) {
         char buffer[BUFFER_SIZE] = {0};
         fgets(buffer,BUFFER_SIZE,fp);
         sscanf(buffer,"%d", &size);
+
         /************************************************** BROADCAST_SIZE *************************************************************************/
         MPI_Bcast(&size, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
         rank_print(rank); debug_print("Received size: %d\n", size);
@@ -306,6 +307,16 @@ int main(int argc, char **argv) {
             free(sending_high_frontier);
             free(receiving_low_frontier);
             free(receiving_high_frontier);
+
+            /* Remove dead nodes from the graph every REMOVAL_PERIOD generations */
+            if(g % REMOVAL_PERIOD == 0){
+                for(x = 0; x < BLOCK_SIZE(rank, nprocs, size); x++){
+                    for(y = 0; y < size; y++){
+                        graph_node** list = &local_graph[x][y];
+                        graphListCleanup(list);
+                    }
+                }
+            }
 
         }//Generations loop end
         /********************************************POS-GENERATION-PROCESSING BY ROOT**************************************************/
@@ -563,6 +574,16 @@ int main(int argc, char **argv) {
             free(sending_high_frontier);
             free(receiving_low_frontier);
             free(receiving_high_frontier);
+
+            /* Remove dead nodes from the graph every REMOVAL_PERIOD generations */
+            if(g % REMOVAL_PERIOD == 0){
+                for(x = 0; x < BLOCK_SIZE(rank, nprocs, size); x++){
+                    for(y = 0; y < size; y++){
+                        graph_node** list = &local_graph[x][y];
+                        graphListCleanup(list);
+                    }
+                }
+            }
         }//Generations loop end
         /********************************************POS-GENERATION-PROCESSING**************************************************/
         local_graph_length=0;
@@ -788,5 +809,31 @@ void graphNodeDelete(graph_node* first){
     for(it = first; it != NULL; it = next){
         next = it->next;
         free(it);
+    }
+}
+
+void graphListCleanup(graph_node** head){
+    graph_node *temp, *prev;
+    if(*head != NULL){
+        temp = *head;
+        /* Delete from the beginning */
+        while(temp != NULL && temp->state == DEAD){
+            *head = temp->next;
+            free(temp);
+            temp = *head;
+        }
+        /*Delete from the middle*/
+        while(temp != NULL){
+            while (temp != NULL && temp->state != DEAD){
+                prev = temp;
+                temp = temp->next;
+            }
+            if(temp == NULL)
+                return;
+
+            prev->next = temp->next;
+            free(temp);
+            temp = prev->next;
+        }
     }
 }
