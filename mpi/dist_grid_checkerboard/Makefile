@@ -4,11 +4,11 @@ LIBS = -lm
 CC = mpicc
 FLAG =
 
-all: dist_grid cleanup
+all: dist_grid.bin cleanup
 
-dist_grid: $(OBJECT_FILES)
+dist_grid.bin: $(OBJECT_FILES)
 
-dist_grid:
+dist_grid.bin:
 	$(CC) $(CFLAGS) $(FLAG) $^ $(LIBS) -o $@
 
 dist_grid.o:
@@ -23,4 +23,4 @@ cleanup:
 	rm -f *.o
 
 clean:
-	rm -f dist_grid graph *.o *~
+	rm -f dist_grid.bin graph *.o *~

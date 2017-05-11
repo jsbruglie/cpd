@@ -27,11 +27,11 @@ typedef unsigned char bool;
 
 // TODO - Create a special MPI structure for frontier sending that only has y and z
 /** @brief Structure for sending over MPI */
-typedef struct _node{
+typedef struct _Node{
     int z;
     int y;
     int x;
-}node;
+}Node;
 
 /** @brief Structure for storing a node of the graph */
 typedef struct _GraphNode{

@@ -32,7 +32,7 @@ int main (int argc, char **argv) {
     /* Main program variables */
 
     /**< Global graph representation */
-    //GraphNode ***global_graph;
+    GraphNode ***global_graph;
     /**< Local graph representation */
     GraphNode ***local_graph;
     
@@ -47,32 +47,39 @@ int main (int argc, char **argv) {
     /**< Number of generations to be computed */
     int generations;
     
-    /* Frontiers */    
-    
-    /**< */
-    //Node *snd_low_x_frontier;
-    /**< */
-    //Node *snd_high_x_frontier;
-    /**< */
-    //Node *snd_low_y_frontier;
-    /**< */
-    //Node *snd_high_y_frontier;
-    /**< */
-    //Node *rcv_low_x_frontier;
-    /**< */
-    //Node *rcv_high_x_frontier;
-    /**< */
-    //Node *rcv_low_y_frontier;
-    /**< */
-    //Node *rcv_high_y_frontier;
-    
     /* Auxiliary variables */
-    //GraphNode *it;
     int x, y, z;
     int i, j;
     int mpi_rv;
     char buffer[BUFFER_SIZE] = {0};
-    
+    GraphNode *it;
+
+    /* Number of live cells to be sent to each neighbour */
+    int snd_count_low_x;
+    int snd_count_high_x;
+    int snd_count_low_y;
+    int snd_count_high_y;
+
+    /* Frontier buffers to be sent to each neighbour */
+    Node* snd_low_x;
+    Node* snd_high_x;
+    Node* snd_low_y;
+    Node* snd_high_y;
+
+    /* Number of live cells to be received from each neighbour */
+    int rcv_count_low_x;
+    int rcv_count_high_x;
+    int rcv_count_low_y;
+    int rcv_count_high_y;
+
+    /* Frontier buffers to be received from each neighbour */
+    Node* rcv_low_x;
+    Node* rcv_high_x;
+    Node* rcv_low_y;
+    Node* rcv_high_y;
+
+    /***********************************************************************************/
+
     /* MPI */
     MPI_Init(&argc, &argv);
     
@@ -188,12 +195,122 @@ int main (int argc, char **argv) {
             }
         }
     }
-    debug_print("(%d,%d) Rank %d - Reached End", coord[0], coord[1], cart_rank);
-
-    /***********************************************************************************/
+    debug_print("(%d,%d) Rank %d - Finished inserting nodes", coord[0], coord[1], cart_rank);
 
     // TODO DEBUG
     MPI_Barrier(grid_comm);
+
+    /***********************************************************************************/
+
+    /* Allocate neighbour rows and columns that will be received */
+    
+    /* Neighbour rows */
+    GraphNode** row_low_x = malloc(sizeof(GraphNode*) * dim_y);
+    GraphNode** row_high_x = malloc(sizeof(GraphNode*) * dim_y);
+    /* The x coordinates of each neighbour row */
+    int nbr_coord_low_x = (offset_x == 0)? cube_size - 1 : offset_x - 1;
+    int nbr_coord_high_x = (offset_x == 0)? cube_size - 1 : offset_x - 1; 
+    /* Neighbour columns */
+    GraphNode** col_low_y = malloc(sizeof(GraphNode*) * dim_x);
+    GraphNode** col_high_y = malloc(sizeof(GraphNode*) * dim_x);
+    /* The y coordinates of each neighbour column */
+    int nbr_coord_low_y = (offset_y == 0)? cube_size - 1 : offset_y - 1;
+    int nbr_coord_high_y = (offset_y == 0)? cube_size - 1 : offset_y - 1; 
+
+    // TODO THE GENERATIONS LOOP SHOULD START ABOUT HERE
+    // DECLARE VARIABLES OUTSIDE TO MINIMIZE HEAP
+
+    /***********************************************************************************/
+
+    /* Count number of live cells in each own frontier so they can be sent */
+    snd_count_low_x = 0;
+    snd_count_high_x = 0;
+    snd_count_low_y = 0;
+    snd_count_high_y = 0;
+
+    for (i = 0; i < dim_y; i++){
+        for (it = local_graph[0][i]; it != NULL; it = it->next){
+            if (it->state == ALIVE){
+                snd_count_low_x++;
+            }
+        }
+        for (it = local_graph[dim_x - 1][i]; it != NULL; it = it->next){
+            if (it->state == ALIVE){
+                snd_count_high_x++;
+            }
+        }
+    }
+    for (i = 0; i < dim_x; i++){
+        for (it = local_graph[i][0]; it != NULL; it = it->next){
+            if (it->state == ALIVE){
+                snd_count_low_y++;
+            }
+        }
+        for (it = local_graph[i][dim_y - 1]; it != NULL; it = it->next){
+            if (it->state == ALIVE){
+                snd_count_high_y++;
+            }
+        }
+    }
+
+    /***********************************************************************************/
+
+    /* Allocate buffers to be sent */
+    snd_low_x = malloc(sizeof(Node) * snd_count_low_x);
+    snd_high_x = malloc(sizeof(Node) * snd_count_high_x);
+    snd_low_y = malloc(sizeof(Node) * snd_count_low_y);
+    snd_high_y = malloc(sizeof(Node) * snd_count_high_y);
+
+    /* Fill buffers */
+    for (i = 0; i < dim_y; i++){
+        for (it = local_graph[0][i]; it != NULL; it = it->next){
+            if (it->state == ALIVE){
+                snd_count_low_x++;
+            }
+        }
+        for (it = local_graph[dim_x - 1][i]; it != NULL; it = it->next){
+            if (it->state == ALIVE){
+                snd_count_high_x++;
+            }
+        }
+    }
+    for (i = 0; i < dim_x; i++){
+        for (it = local_graph[i][0]; it != NULL; it = it->next){
+            if (it->state == ALIVE){
+                snd_count_low_y++;
+            }
+        }
+        for (it = local_graph[i][dim_y - 1]; it != NULL; it = it->next){
+            if (it->state == ALIVE){
+                snd_count_high_y++;
+            }
+        }
+    }    
+
+    // TODO NOTIFY PROCESSES OF THE SIZE OF THE ARRAYS TO BE SENT
+
+    // TODO RECEIVE SIZE OF THE ARRAYS TO BE RECEIVED
+
+    rcv_count_low_x = 1;
+    rcv_count_high_x = 1;
+    rcv_count_low_y = 1;
+    rcv_count_high_y = 1;
+
+    /* Allocate buffers to received sent */
+    rcv_low_x = malloc(sizeof(Node) * rcv_count_low_x);
+    rcv_high_x = malloc(sizeof(Node) * rcv_count_high_x);
+    rcv_low_y = malloc(sizeof(Node) * rcv_count_low_y);
+    rcv_high_y = malloc(sizeof(Node) * rcv_count_high_y);
+
+    /***********************************************************************************/
+
+    // CLEANUP BUFFERS
+
+    /***********************************************************************************/
+
+    // PROCESS GENERATION
+
+    /***********************************************************************************/
 
     /* Clean up */
     freeGraph(local_graph, dim_x, dim_y);
