@@ -1,4 +1,4 @@
-\/** @file dist_grids.c
+/** @file dist_grid.c
 *  @brief Distributed MPI version of bruteforce in C
 *  @author Pedro Abreu
 *  @author João Borrego
