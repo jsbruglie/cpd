@@ -25,14 +25,6 @@
 /*+++++++++++++++++++++++++++++++++++++++++++++++++ STRUCTURES +++++++++++++++++++++++++++++++++++++++++++++++++++*/
 typedef unsigned char bool;
 
-// TODO - Create a special MPI structure for frontier sending that only has y and z
-/** @brief Structure for sending over MPI */
-typedef struct _node{
-    int z;
-    int y;
-    int x;
-}node;
-
 /** @brief Structure for storing a node of the graph */
 typedef struct _graph_node{
     int z;                   /**< z coordinate, x and y are implicitly mapped */
