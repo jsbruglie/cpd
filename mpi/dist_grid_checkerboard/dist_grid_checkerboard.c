@@ -28,6 +28,13 @@ int main (int argc, char **argv) {
 
     /* Auxiliary variables */
     
+    /* Main program execution */
+
+    /**< Live neighbours counter */
+    int live_neighbours;
+    /**< Generations counter */
+    int g;
+
     /* Iterative variables*/
     int x, y, z;
     int i, j;
@@ -36,7 +43,6 @@ int main (int argc, char **argv) {
     
     /* Function return values and status codes */
     int mpi_rv;
-    MPI_Status mpi_s0_x, mpi_s1_x, mpi_s0_y, mpi_s1_y;
     MPI_Status mpi_status_prb, mpi_status_snd, mpi_status_rcv;
 
     /* Buffers */
@@ -112,11 +118,13 @@ int main (int argc, char **argv) {
     MPI_Cart_rank(grid_comm, coord, &cart_rank);
 
     // TODO BEGIN DEBUG
+    /*
     if (rank == ROOT){
         for (i = 0; i < N_DIMS; i++) {
             debug_print("Dimension %d has %d processes", i, dims[i]);
         }
     }
+    */
     // TODO END
 
     /* Get neighbours */
@@ -127,9 +135,11 @@ int main (int argc, char **argv) {
     MPI_Cart_shift(grid_comm, SHIFT_COL, DISP, &nbr_low_y, &nbr_high_y);
 
     // TODO BEGIN DEBUG
+    /*
     MPI_Barrier(grid_comm);
     debug_print("(%d,%d) Rank %d Neighbour x lo %d hi %d y: lo %d hi %d",
         coord[0], coord[1], cart_rank, nbr_low_x, nbr_high_x, nbr_low_y, nbr_high_y);
+    */
     // TODO END
 
     /***********************************************************************************/
@@ -154,9 +164,10 @@ int main (int argc, char **argv) {
     /* Calculate block dimensions and offsets */
 
     int other_x = cube_size / dims[0];
-    int first_x = (cube_size % other_x) + other_x;
+    /* The first block gets the excess cells */
+    int first_x = cube_size - (other_x * (dims[0] - 1));
     int other_y = cube_size / dims[1];
-    int first_y = (cube_size % other_y) + other_y;
+    int first_y = cube_size - (other_y * (dims[1] - 1));
 
     /* Block offsets */
     int offset_x = (coord[0] == 0) ? 0 : first_x + (coord[0] - 1) * other_x;
@@ -169,14 +180,14 @@ int main (int argc, char **argv) {
     int max_y = offset_y + dim_y - 1;
 
     // TODO DEBUG
-    MPI_Barrier(grid_comm);
-    debug_print("(%d,%d) Rank %d offset_x %d offset y %d dim_x %d dim_y %d",
-        coord[0], coord[1], cart_rank, offset_x, offset_y, dim_x, dim_y);
+    //MPI_Barrier(grid_comm);
+    //debug_print("(%d,%d) Rank %d offset_x %d offset y %d dim_x %d dim_y %d",
+    //    coord[0], coord[1], cart_rank, offset_x, offset_y, dim_x, dim_y);
 
     /***********************************************************************************/
 
     // TODO DEBUG
-    MPI_Barrier(grid_comm);
+    //MPI_Barrier(grid_comm);
 
     /* Fill local graph structure */
     local_graph = initGraph(dim_x, dim_y);
@@ -192,7 +203,7 @@ int main (int argc, char **argv) {
             }
         }
     }
-    debug_print("(%d,%d) Rank %d - Finished inserting nodes", coord[0], coord[1], cart_rank);
+    //debug_print("(%d,%d) Rank %d - Finished inserting nodes", coord[0], coord[1], cart_rank);
 
     // TODO DEBUG
     MPI_Barrier(grid_comm);
@@ -208,176 +219,269 @@ int main (int argc, char **argv) {
     int nbr_coord_low_y = (offset_y == 0)? cube_size - 1 : offset_y - 1;
     int nbr_coord_high_y = (max_y == cube_size - 1)? 0 : offset_y + 1;
 
-    // TODO THE GENERATIONS LOOP SHOULD START ABOUT HERE
-    // DECLARE VARIABLES OUTSIDE TO MINIMIZE HEAP
-
     /***********************************************************************************/
 
-    /* Count number of live cells in each own frontier so they can be sent */
-    snd_count_low_x = 0;
-    snd_count_high_x = 0;
-    snd_count_low_y = 0;
-    snd_count_high_y = 0;
+    for (g = 1; g <= generations; g++){
 
-    for (i = 0; i < dim_y; i++){
-        for (it = local_graph[0][i]; it != NULL; it = it->next){
-            if (it->state == ALIVE){
-                snd_count_low_x++;
-            }
-        }
-        for (it = local_graph[dim_x - 1][i]; it != NULL; it = it->next){
-            if (it->state == ALIVE){
-                snd_count_high_x++;
-            }
-        }
-    }
-    for (i = 0; i < dim_x; i++){
-        for (it = local_graph[i][0]; it != NULL; it = it->next){
-            if (it->state == ALIVE){
-                snd_count_low_y++;
-            }
-        }
-        for (it = local_graph[i][dim_y - 1]; it != NULL; it = it->next){
-            if (it->state == ALIVE){
-                snd_count_high_y++;
-            }
-        }
-    }
+        /* Count number of live cells in each own frontier so they can be sent */
+        snd_count_low_x = 0; snd_count_high_x = 0;
+        snd_count_low_y = 0; snd_count_high_y = 0;
 
-    /***********************************************************************************/
-
-    /* Allocate buffers to be sent */
-    snd_low_x = malloc(sizeof(Node) * snd_count_low_x);
-    snd_high_x = malloc(sizeof(Node) * snd_count_high_x);
-    snd_low_y = malloc(sizeof(Node) * snd_count_low_y);
-    snd_high_y = malloc(sizeof(Node) * snd_count_high_y);
-    
-    snd_i = 0; snd_j = 0; snd_k = 0; snd_l = 0;
-
-    /* Fill buffers */
-    for (y = 0; y < dim_y; y++){
-        for (it = local_graph[0][y]; it != NULL; it = it->next){
-            if (it->state == ALIVE){
-                addToSndArray(snd_low_x, snd_i, offset_x, offset_y + y, it->z);
-                snd_i++;
-            }
-        }
-        for (it = local_graph[dim_x - 1][y]; it != NULL; it = it->next){
-            if (it->state == ALIVE){
-                addToSndArray(snd_high_x, snd_j, max_x, offset_y + y, it->z);
-                snd_j++;
-            }
-        }
-    }
-    for (x = 0; x < dim_x; x++){
-        for (it = local_graph[x][0]; it != NULL; it = it->next){
-            if (it->state == ALIVE){
-                addToSndArray(snd_low_y, snd_k, offset_x + x, offset_y, it->z);
-                snd_k++;
-            }
-        }
-        for (it = local_graph[x][dim_y - 1]; it != NULL; it = it->next){
-            if (it->state == ALIVE){
-                addToSndArray(snd_high_y, snd_l, offset_x + x, max_y, it->z);
-                snd_l++;
-            }
-        }
-    }
-
-    /***********************************************************************************/
-
-    // TODO DEBUG
-    MPI_Barrier(grid_comm);
-
-    // TODO MAYBE IRRELEVANT, SINCE THEY GET SET ANYWAY
-    /* Reset the counters of live neighbour cells to be received by each neighbour */
-    rcv_count_low_x = 0; rcv_count_high_x = 0; rcv_count_low_y = 0; rcv_count_high_y = 0;
-
-    /***********************************************************************************/
-
-    /* Send borders to neighbours */
-    sendBorder(grid_comm, TAG_LOW_X, cart_rank, nbr_low_x,
-        &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_low_x, snd_count_low_x);
-    sendBorder(grid_comm, TAG_HIGH_X, cart_rank, nbr_high_x,
-        &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_high_x, snd_count_high_x);
-    sendBorder(grid_comm, TAG_LOW_Y, cart_rank, nbr_low_y,
-        &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_low_y, snd_count_low_y);
-    sendBorder(grid_comm, TAG_HIGH_Y, cart_rank, nbr_high_y,
-        &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_high_y, snd_count_high_y);
-
-    /* Receive borders from neighbours */
-    rcv_count_low_x = receiveBorder(grid_comm, TAG_HIGH_X, cart_rank, nbr_low_x,
-        &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_low_x);
-    rcv_count_high_x = receiveBorder(grid_comm, TAG_LOW_X, cart_rank, nbr_high_x,
-        &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_high_x);
-    rcv_count_low_y = receiveBorder(grid_comm, TAG_HIGH_Y, cart_rank, nbr_low_y,
-        &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_low_y);
-    rcv_count_high_y = receiveBorder(grid_comm, TAG_LOW_Y, cart_rank, nbr_high_y,
-        &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_high_y);
-
-    // TODO Maybe evaluate MPI status just in case, create a checker function?
-
-    /***********************************************************************************/
-
-    // TODO DEBUG
-    MPI_Barrier(grid_comm);
-    if (rank == ROOT) debug_print("Finished exchanging frontiers");
-
-    /***********************************************************************************/
-
-    /* Process internal nodes, i.e. not on the boundary of the local graph */
-    for (x = 1; x < dim_x - 1; x++){
-        for (y = 1; y < dim_y - 1; y++){
-            for (it = local_graph[x][y]; it != NULL; it = it->next){
+        for (i = 0; i < dim_y; i++){
+            for (it = local_graph[0][i]; it != NULL; it = it->next){
                 if (it->state == ALIVE){
-                    visitInternalNeighbours(local_graph, x, y, it->z);
+                    snd_count_low_x++;
+                }
+            }
+            for (it = local_graph[dim_x - 1][i]; it != NULL; it = it->next){
+                if (it->state == ALIVE){
+                    snd_count_high_x++;
                 }
             }
         }
-    }
-
-    /***********************************************************************************/
-
-    /* Process nodes on the boundaries */
-    
-    /* Process first row (except first and last elements) */
-    for (y = 1; i < dim_y - 1; i++){
-        for (it = local_graph[0][y]; it != NULL; it = it->next){
-            visitBoundaryNeighbours(local_graph, dim_x, dim_y, 0, y, it->z);
-        }
-    }
-
-    /* Process first and last columns */
-    for (x = 0; x < dim_x; x += dim_x -1){
-        for (y = 0; y < dim_y; y++){
-            for (it = local_graph[x][y]; it != NULL; it = it->next){
-                visitBoundaryNeighbours(local_graph, dim_x, dim_y, x, y, it->z);
+        for (i = 0; i < dim_x; i++){
+            for (it = local_graph[i][0]; it != NULL; it = it->next){
+                if (it->state == ALIVE){
+                    snd_count_low_y++;
+                }
+            }
+            for (it = local_graph[i][dim_y - 1]; it != NULL; it = it->next){
+                if (it->state == ALIVE){
+                    snd_count_high_y++;
+                }
             }
         }
-    }    
 
-    /* Process last row (except first and last elements) */
-    for (y = 1; i < dim_y - 1; i++){
-        for (it = local_graph[dim_x - 1][y]; it != NULL; it = it->next){
-            visitBoundaryNeighbours(local_graph, dim_x, dim_y, dim_x - 1, y, it->z);
+    /***********************************************************************************/
+
+        /* Allocate buffers to be sent */
+        snd_low_x = malloc(sizeof(Node) * snd_count_low_x);
+        snd_high_x = malloc(sizeof(Node) * snd_count_high_x);
+        snd_low_y = malloc(sizeof(Node) * snd_count_low_y);
+        snd_high_y = malloc(sizeof(Node) * snd_count_high_y);
+        
+        snd_i = 0; snd_j = 0; snd_k = 0; snd_l = 0;
+
+        /* Fill buffers */
+        for (y = 0; y < dim_y; y++){
+            for (it = local_graph[0][y]; it != NULL; it = it->next){
+                if (it->state == ALIVE){
+                    addToSndArray(snd_low_x, snd_i, offset_x, offset_y + y, it->z);
+                    snd_i++;
+                }
+            }
+            for (it = local_graph[dim_x - 1][y]; it != NULL; it = it->next){
+                if (it->state == ALIVE){
+                    addToSndArray(snd_high_x, snd_j, max_x, offset_y + y, it->z);
+                    snd_j++;
+                }
+            }
         }
-    }
+        for (x = 0; x < dim_x; x++){
+            for (it = local_graph[x][0]; it != NULL; it = it->next){
+                if (it->state == ALIVE){
+                    addToSndArray(snd_low_y, snd_k, offset_x + x, offset_y, it->z);
+                    snd_k++;
+                }
+            }
+            for (it = local_graph[x][dim_y - 1]; it != NULL; it = it->next){
+                if (it->state == ALIVE){
+                    addToSndArray(snd_high_y, snd_l, offset_x + x, max_y, it->z);
+                    snd_l++;
+                }
+            }
+        }
 
     /***********************************************************************************/
 
-    /* Process neighbour nodes */
+        // TODO DEBUG
+        //MPI_Barrier(grid_comm);
+
+        // TODO MAYBE IRRELEVANT, SINCE THEY GET SET ANYWAY
+        /* Reset the counters of live neighbour cells to be received by each neighbour */
+        rcv_count_low_x = 0; rcv_count_high_x = 0; rcv_count_low_y = 0; rcv_count_high_y = 0;
 
     /***********************************************************************************/
 
-    /* Cleanup sending buffers */
-    free(snd_low_x);
-    free(snd_high_x);
-    free(snd_low_y);
-    free(snd_high_y);
-    
+        /* Send borders to neighbours */
+        sendBorder(grid_comm, TAG_LOW_X, cart_rank, nbr_low_x,
+            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_low_x, snd_count_low_x);
+        sendBorder(grid_comm, TAG_HIGH_X, cart_rank, nbr_high_x,
+            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_high_x, snd_count_high_x);
+        sendBorder(grid_comm, TAG_LOW_Y, cart_rank, nbr_low_y,
+            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_low_y, snd_count_low_y);
+        sendBorder(grid_comm, TAG_HIGH_Y, cart_rank, nbr_high_y,
+            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_high_y, snd_count_high_y);
+
+        /* Receive borders from neighbours */
+        rcv_count_low_x = receiveBorder(grid_comm, TAG_HIGH_X, cart_rank, nbr_low_x,
+            &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_low_x);
+        rcv_count_high_x = receiveBorder(grid_comm, TAG_LOW_X, cart_rank, nbr_high_x,
+            &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_high_x);
+        rcv_count_low_y = receiveBorder(grid_comm, TAG_HIGH_Y, cart_rank, nbr_low_y,
+            &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_low_y);
+        rcv_count_high_y = receiveBorder(grid_comm, TAG_LOW_Y, cart_rank, nbr_high_y,
+            &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_high_y);
+
+        // TODO Maybe evaluate MPI status just in case, create a checker function?
+
     /***********************************************************************************/
 
-    /* TODO - GENERATION LOOP SHOULD STOP HERE */
+        /* TODO - Is this necessary? Or do the blocking receive calls handle this */
+        MPI_Barrier(grid_comm);
+        
+        // TODO DEBUG
+        //debug_print("Rank %d Finished exchanging boundaries", cart_rank);
+
+    /***********************************************************************************/
+
+        /* Process internal nodes, i.e. not on the boundary of the local graph */
+        for (x = 1; x < dim_x - 1; x++){
+            for (y = 1; y < dim_y - 1; y++){
+                for (it = local_graph[x][y]; it != NULL; it = it->next){
+                    if (it->state == ALIVE){
+                        visitInternalNeighbours(local_graph, x, y, it->z);
+                    }
+                }
+            }
+        }
+
+        // TODO DEBUG
+        //MPI_Barrier(grid_comm);
+        //debug_print("Rank %d Finished visiting internal cells", cart_rank);
+
+    /***********************************************************************************/
+
+        /* Process nodes on the boundaries */
+        
+        /* Check corner cases (blocks with only a single row or column) */
+
+        /* Process first row (except first and last elements) */
+        for (y = 1; y < dim_y - 1; y++){
+            for (it = local_graph[0][y]; it != NULL; it = it->next){
+                visitBoundaryNeighbours(local_graph, dim_x, dim_y, 0, y, it->z);
+            }
+        }
+
+        /* Process first column */
+        for (x = 0; x < dim_x; x++){
+            for (it = local_graph[x][0]; it != NULL; it = it->next){
+                visitBoundaryNeighbours(local_graph, dim_x, dim_y, x, 0, it->z);
+            }
+        }
+
+        /* If block has a single column, then the upper column and last coincide, and its nodes
+            have already been processed */
+        if (dim_y > 0){
+            for (x = 0; x < dim_x; x++){
+                for (it = local_graph[x][dim_y - 1]; it != NULL; it = it->next){
+                    visitBoundaryNeighbours(local_graph, dim_x, dim_y, x, dim_y - 1, it->z);
+                }            
+            }
+        }
+
+        /* If block has a single row, then the upper row and last coincide, and its nodes
+            have already been processed */
+        if (dim_x > 1){
+            /* Process last row (except first and last elements) */
+            for (y = 1; y < dim_y - 1; y++){
+                for (it = local_graph[dim_x - 1][y]; it != NULL; it = it->next){
+                    visitBoundaryNeighbours(local_graph, dim_x, dim_y, dim_x - 1, y, it->z);
+                }
+            }
+        }
+
+        // TODO DEBUG
+        // MPI_Barrier(grid_comm);
+        // debug_print("Rank %d Finished visiting boundary cells", cart_rank);
+
+
+    /***********************************************************************************/
+
+        // TODO - DEBUG
+        //MPI_Barrier(grid_comm);
+
+        /* Process neighbour nodes */
+
+        /* Process lower x row */
+        for (i = 0; i < rcv_count_low_x; i++){
+            y = rcv_low_x[i].y - offset_y;
+            z = rcv_low_x[i].z;
+            graphNodeAddNeighbour(&(local_graph[0][y]), z);
+        }
+
+        /* Process higher x row */
+        for (i = 0; i < rcv_count_high_x; i++){
+            y = rcv_high_x[i].y - offset_y;
+            z = rcv_high_x[i].z;
+            graphNodeAddNeighbour(&(local_graph[dim_x - 1][y]), z);
+        }
+
+        /* Process lower y column */
+        for (i = 0; i < rcv_count_low_y; i++){
+            x = rcv_low_y[i].x - offset_x;
+            z = rcv_low_y[i].z;
+            graphNodeAddNeighbour(&(local_graph[x][0]), z);        
+        }
+
+        /* Process higher y column */
+        for (i = 0; i < rcv_count_high_y; i++){
+            x = rcv_high_y[i].x - offset_x;
+            z = rcv_high_y[i].z;
+            graphNodeAddNeighbour(&(local_graph[x][dim_y - 1]), z);        
+        }
+
+        // TODO DEBUG
+        // MPI_Barrier(grid_comm);
+        // debug_print("Rank %d Finished processing neighbour cells", cart_rank);
+
+    /***********************************************************************************/
+
+        /* Determine next state of each cell */
+        for (x = 0; x < dim_x; x++){
+            for (y = 0; y < dim_y; y++){
+                for (it = local_graph[x][y]; it != NULL; it = it->next){
+                    live_neighbours = it->neighbours;
+                    it->neighbours = 0;
+                    if(it->state == ALIVE){
+                        if(live_neighbours < 2 || live_neighbours > 4){
+                            it->state = DEAD;
+                        }
+                    }else{
+                        if(live_neighbours == 2 || live_neighbours == 3){
+                            it->state = ALIVE;
+                        }
+                    }
+                }
+            }
+        }
+
+        /* Remove dead nodes from the graph every REMOVAL_PERIOD generations */
+        if (g % REMOVAL_PERIOD == 0){
+            for (x = 0; x < dim_x; x++){
+                for (y = 0; y < dim_y; y++){
+                    graphListCleanup(&(local_graph[x][y]));
+                }
+            }
+        }
+
+    /***********************************************************************************/
+
+        /* Cleanup sending buffers */
+        free(snd_low_x); free(snd_high_x);
+        free(snd_low_y); free(snd_high_y);
+        
+    /***********************************************************************************/
+
+    } // END MAIN FOR LOOP
+
+    /***********************************************************************************/
+
+    /* Gather global graph in ROOT process */
+
+    // TODO
+
+    /***********************************************************************************/
 
     /* Clean up */
     freeGraph(local_graph, dim_x, dim_y);
@@ -423,7 +527,9 @@ void sendBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
                 Node *snd, int snd_size){
 
     MPI_Send(snd, snd_size, mpi_datatype, nbr_rank, mpi_tag, mpi_comm);
-    debug_print("Rank %d <-> %d - sent %d (TAG %d)", my_rank, nbr_rank, snd_size, mpi_tag);
+
+    // TODO - DEBUG
+    //debug_print("Rank %d <-> %d - sent %d (TAG %d)", my_rank, nbr_rank, snd_size, mpi_tag);
 }
 
 int receiveBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
@@ -434,10 +540,11 @@ int receiveBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
     
     MPI_Probe(nbr_rank, mpi_tag, mpi_comm, status_prb);
     MPI_Get_count(status_prb, mpi_datatype, &rcv_size);
-    *rcv = malloc(sizeof(Node) * rcv_size);
-    MPI_Recv(rcv, rcv_size, mpi_datatype, nbr_rank, mpi_tag, mpi_comm, MPI_STATUS_IGNORE);
     
-    debug_print("Rank %d <-> %d - received %d (TAG %d)", my_rank, nbr_rank, rcv_size, mpi_tag);
+    *rcv = malloc(sizeof(Node) * rcv_size);
+    MPI_Recv(*rcv, rcv_size, mpi_datatype, nbr_rank, mpi_tag, mpi_comm, MPI_STATUS_IGNORE);
 
+    // TODO - DEBUG
+    //debug_print("Rank %d <-> %d - received %d (TAG %d)", my_rank, nbr_rank, rcv_size, mpi_tag);
     return rcv_size;
 }

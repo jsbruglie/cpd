@@ -24,7 +24,7 @@
 /**< Macro for representing the root process in MPI */
 #define ROOT 0
 
-/* Commnutication tags */
+/* Communication tags */
 
 /**< Macro for representing border object communications */
 #define TAG_BORDER 10
@@ -36,6 +36,9 @@
 #define TAG_LOW_Y 40
 /**< Macro for identifying communication between current process and higher y neighbour */
 #define TAG_HIGH_Y 50
+
+/**< Dead node removal period */
+#define REMOVAL_PERIOD 5 
 
 /* TODO - Migrate to debug.h */
 
