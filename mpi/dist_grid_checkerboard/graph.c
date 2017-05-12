@@ -30,7 +30,7 @@ GraphNode*** initGraph(int dim_x, int dim_y){
 GraphNode*** initLocalGraph(int bsize, int size){
 
     int i,j;
-    GraphNode*** graph = (GraphNode***) malloc(sizeof(GraphNode**) * bsize);
+    GraphNode ***graph = (GraphNode***) malloc(sizeof(GraphNode**) * bsize);
 
     for (i = 0; i < bsize; i++){
         graph[i] = (GraphNode**) malloc(sizeof(GraphNode*) * size);
@@ -42,9 +42,9 @@ GraphNode*** initLocalGraph(int bsize, int size){
 }
 
 bool graphNodeAddNeighbour(GraphNode** first, int z){
-    GraphNode* it;
+    GraphNode *it;
     /* Search for the node */
-    for(it = *first; it != NULL; it = it->next){
+    for (it = *first; it != NULL; it = it->next){
         if (it->z == z){
             it->neighbours++;
             return false;
@@ -64,8 +64,10 @@ void visitInternalNeighbours(GraphNode*** local_graph, int cube_size, int x, int
      * @attention x+1, x-1, y+1, y-1 are guaranteed to be valid indices,
      * since (x,y,z) is considered to be internal, i.e., not on a border
      */
+    
     int z1, z2;
     z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
+    
     graphNodeAddNeighbour(&(local_graph[x+1][y]), z);
     graphNodeAddNeighbour(&(local_graph[x-1][y]), z);
     graphNodeAddNeighbour(&(local_graph[x][y+1]), z);
@@ -74,16 +76,36 @@ void visitInternalNeighbours(GraphNode*** local_graph, int cube_size, int x, int
     graphNodeAddNeighbour(&(local_graph[x][y]), z2);
 }
 
-void visitBoundaryNeighbours(GraphNode*** local_graph, int cube_size, int dim_x, int dim_y, int x, int y, int z){
+void visitBoundaryNeighbours(GraphNode*** local_graph, int cube_size,
+    int dim_x, int dim_y, int x, int y, int z){
+
+    int z1, z2;
+    z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
 
     if (x+1 < dim_x){ graphNodeAddNeighbour(&(local_graph[x+1][y]), z);}
     if (x-1 >= 0){ graphNodeAddNeighbour(&(local_graph[x-1][y]), z); }
     if (y+1 < dim_y){ graphNodeAddNeighbour(&(local_graph[x][y+1]), z);}
     if (y-1 >= 0){ graphNodeAddNeighbour(&(local_graph[x][y-1]), z); }
-    int z1, z2;
-    z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
     graphNodeAddNeighbour(&(local_graph[x][y]), z1);
     graphNodeAddNeighbour(&(local_graph[x][y]), z2);
+}
+
+void printAndSortActiveSub(GraphNode*** graph, int offset_x, int offset_y, int dim_x, int dim_y){
+    
+    int x,y;
+    GraphNode* it;
+    for (x = 0; x < dim_x; ++x){
+        for (y = 0; y < dim_y; ++y){
+            /* Sort the list by ascending coordinate z */
+            graphNodeSort(&(graph[x][y]));
+            for (it = graph[x][y]; it != NULL; it = it->next){
+                if (it->state == ALIVE){
+                    printf("%d %d %d\n", x + offset_x, y + offset_y, it->z);
+                    fflush(stdin);
+                }
+            }
+        }
+    }
 }
 
 void visitNeighbours(GraphNode*** graph, int cube_size, int x, int y, int z){

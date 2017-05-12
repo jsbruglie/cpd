@@ -6,8 +6,6 @@
 #include <string.h>
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++ MACROS +++++++++++++++++++++++++++++++++++++++++++++++++++*/
-#define BUFFER_SIZE 200
-#define REMOVAL_PERIOD 5 /**< Number of generations until you cleanup the dead nodes from graph */
 
 #define ALIVE 1 /**< Macro for representing a live cell */
 #define DEAD 0 /**< Macro for representing a dead cell */
@@ -16,13 +14,8 @@
 #define REMOVE -1   /**< Used to signal that an entry in list should be removed */
 #define UPDATE 1    /**< Used to force a GraphNode insertion to simply update an existing node */
 
-/*+++++++++++++++++++++++++++++++++++++++++++++++++ BLOCK MACROS +++++++++++++++++++++++++++++++++++++++++++++++++++*/
-#define BLOCK_LOW(rank,numprocs,size) 	((rank)*(size)/(numprocs))
-#define BLOCK_HIGH(rank,numprocs,size) 	(BLOCK_LOW((rank)+1,numprocs,size)-1)
-#define BLOCK_SIZE(rank,numprocs,size) 	(BLOCK_HIGH(rank,numprocs,size)-BLOCK_LOW(rank,numprocs,size)+1)
-#define BLOCK_OWNER(element,numprocs,size) ((numprocs*(element+1)-1)/size)
-
 /*+++++++++++++++++++++++++++++++++++++++++++++++++ STRUCTURES +++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
 typedef unsigned char bool;
 
 // TODO - Create a special MPI structure for frontier sending that only has y and z
@@ -35,10 +28,10 @@ typedef struct _Node{
 
 /** @brief Structure for storing a node of the graph */
 typedef struct _GraphNode{
-    int z;                   /**< z coordinate, x and y are implicitly mapped */
-    int state;                     /**< State of a node cell (DEAD or ALIVE) */
-    unsigned char neighbours;       /**< Neighbour counter */
-    struct _GraphNode* next; /**< Pointer to the next entry in the list */
+    int z;                      /**< z coordinate, x and y are implicitly mapped */
+    int state;                  /**< State of a node cell (DEAD or ALIVE) */
+    unsigned char neighbours;   /**< Neighbour counter */
+    struct _GraphNode* next;    /**< Pointer to the next entry in the list */
 }GraphNode;
 
 /** @brief Inserts a GraphNode in the list with value z
@@ -92,6 +85,18 @@ void visitInternalNeighbours(GraphNode*** local_graph, int cube_size, int x, int
  * @param z [description]
  */
 void visitBoundaryNeighbours(GraphNode*** local_graph, int cube_size, int dim_x, int dim_y, int x, int y, int z);
+
+/**
+ * @brief [brief description]
+ * @details [long description]
+ * 
+ * @param graph [description]
+ * @param offset_x [description]
+ * @param offset_y [description]
+ * @param dim_x [description]
+ * @param dim_y [description]
+ */
+void printAndSortActiveSub(GraphNode*** graph, int offset_x, int offset_y, int dim_x, int dim_y);
 
 /** @brief Notifies the neighbours of (x,y,z) of its aliveness and adds them to list
  *

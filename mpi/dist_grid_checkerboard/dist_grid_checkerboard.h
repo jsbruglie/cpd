@@ -37,8 +37,13 @@
 /**< Macro for identifying communication between current process and higher y neighbour */
 #define TAG_HIGH_Y 50
 
+/* General Macros */
+
 /**< Dead node removal period */
-#define REMOVAL_PERIOD 5
+#define REMOVAL_PERIOD 5 
+
+/**< Buffer Size */
+#define BUFFER_SIZE 200 
 
 /* Function headers */
 
