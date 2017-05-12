@@ -1,5 +1,5 @@
-#ifndef DIST_GRID_H
-#define DIST_GRID_H
+#ifndef DIST_GRID_CHECKERBOARD_H
+#define DIST_GRID_CHECKERBOARD_H
 
 #include <stdio.h>
 #include <stdlib.h>
