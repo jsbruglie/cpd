@@ -58,6 +58,30 @@ bool graphNodeAddNeighbour(GraphNode** first, int z){
     return true;
 }
 
+void visitInternalNeighbours(GraphNode*** local_graph, int x, int y, int z){
+
+    /**
+     * @attention x+1, x-1, y+1, y-1 are guaranteed to be valid indices,
+     * since (x,y,z) is considered to be internal, i.e., not on a border
+     */
+    graphNodeAddNeighbour(&(local_graph[x+1][y]), z);
+    graphNodeAddNeighbour(&(local_graph[x-1][y]), z);
+    graphNodeAddNeighbour(&(local_graph[x][y+1]), z);
+    graphNodeAddNeighbour(&(local_graph[x][y-1]), z);
+    graphNodeAddNeighbour(&(local_graph[x][y]), z+1);
+    graphNodeAddNeighbour(&(local_graph[x][y]), z-1);
+}
+
+void visitBoundaryNeighbours(GraphNode*** local_graph, int dim_x, int dim_y, int x, int y, int z){
+
+    if (x+1 < dim_x){ graphNodeAddNeighbour(&(local_graph[x+1][y]), z);}
+    if (x-1 >= 0){ graphNodeAddNeighbour(&(local_graph[x-1][y]), z); }
+    if (y+1 < dim_y){ graphNodeAddNeighbour(&(local_graph[x][y+1]), z);}
+    if (y-1 >= 0){ graphNodeAddNeighbour(&(local_graph[x][y-1]), z); }
+    graphNodeAddNeighbour(&(local_graph[x][y]), z + 1);
+    graphNodeAddNeighbour(&(local_graph[x][y]), z - 1);
+}
+
 void visitNeighbours(GraphNode*** graph, int cube_size, int x, int y, int z){
 
     GraphNode* ptr;
@@ -65,7 +89,7 @@ void visitNeighbours(GraphNode*** graph, int cube_size, int x, int y, int z){
     x1 = (x+1)%cube_size; x2 = (x-1) < 0 ? (cube_size-1) : (x-1);
     y1 = (y+1)%cube_size; y2 = (y-1) < 0 ? (cube_size-1) : (y-1);
     z1 = (z+1)%cube_size; z2 = (z-1) < 0 ? (cube_size-1) : (z-1);
-    /* If a cell is visited for the first time, add it to the update list, for fast access */
+
     graphNodeAddNeighbour(&(graph[x1][y]), z);
     graphNodeAddNeighbour(&(graph[x2][y]), z);
     graphNodeAddNeighbour(&(graph[x][y1]), z);

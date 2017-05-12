@@ -69,6 +69,30 @@ GraphNode*** initLocalGraph(int bsize, int size);
  */
 bool graphNodeAddNeighbour(GraphNode** first, int z);
 
+/**
+ * @brief [brief description]
+ * @details [long description]
+ * 
+ * @param local_graph [description]
+ * @param x [description]
+ * @param y [description]
+ * @param z [description]
+ */
+void visitInternalNeighbours(GraphNode*** local_graph, int x, int y, int z);
+
+/**
+ * @brief [brief description]
+ * @details [long description]
+ * 
+ * @param local_graph [description]
+ * @param dim_x [description]
+ * @param dim_y [description]
+ * @param x [description]
+ * @param y [description]
+ * @param z [description]
+ */
+void visitBoundaryNeighbours(GraphNode*** local_graph, int dim_x, int dim_y, int x, int y, int z);
+
 /** @brief Notifies the neighbours of (x,y,z) of its aliveness and adds them to list
  *
  *  @param graph The graph representation

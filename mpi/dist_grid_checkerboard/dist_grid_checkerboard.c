@@ -6,27 +6,6 @@
 
 #include "dist_grid_checkerboard.h"
 
-/*
-int ownerRank(MPI_Comm comm, int big_x, int small_x, int x,
-                int big_y, int small_y, int y){
-
-    int rank = -1;
-    int coord[N_DIMS] = {0};
-
-    coord[0] = (x < big_x)? 0 : (x - big_x) % small_x;
-    coord[1] = (y < big_y)? 0 : (y - big_y) % small_y;
-    MPI_Cart_rank(comm, coord, &rank);
-    return rank;
-}
-*/
-
-void insertLocalGraph(GraphNode ***graph, int offset_x, int offset_y, int x, int y, int z){
-
-    int mapped_x = (offset_x == 0)? x : x % offset_x;
-    int mapped_y = (offset_y == 0)? y : y % offset_y;
-    graph[mapped_x][mapped_y] = graphNodeInsert(graph[mapped_x][mapped_y], z, ALIVE);
-}
-
 int main (int argc, char **argv) {
 
     /* Main program variables */
@@ -48,11 +27,20 @@ int main (int argc, char **argv) {
     int generations;
 
     /* Auxiliary variables */
+    
+    /* Iterative variables*/
     int x, y, z;
     int i, j;
-    int mpi_rv;
-    char buffer[BUFFER_SIZE] = {0};
+    int snd_i, snd_j, snd_k, snd_l;
     GraphNode *it;
+    
+    /* Function return values and status codes */
+    int mpi_rv;
+    MPI_Status mpi_s0_x, mpi_s1_x, mpi_s0_y, mpi_s1_y;
+    MPI_Status mpi_status_prb, mpi_status_snd, mpi_status_rcv;
+
+    /* Buffers */
+    char buffer[BUFFER_SIZE] = {0};
 
     /* Number of live cells to be sent to each neighbour */
     int snd_count_low_x;
@@ -176,7 +164,7 @@ int main (int argc, char **argv) {
     /* Block dimensions */
     int dim_x = (coord[0] == 0) ? first_x : other_x;
     int dim_y = (coord[1] == 0) ? first_y : other_y;
-    /* Maximum value of a local coordinate (local index <= MAX) */
+    /* Maximum value of a coordinate (absolute index in local graph <= MAX) */
     int max_x = offset_x + dim_x - 1;
     int max_y = offset_y + dim_y - 1;
 
@@ -211,20 +199,14 @@ int main (int argc, char **argv) {
 
     /***********************************************************************************/
 
-    /* Allocate neighbour rows and columns that will be received */
+    /* Calculate coordinates of neighbour rows and columns */
 
-    /* Neighbour rows */
-    GraphNode** row_low_x = malloc(sizeof(GraphNode*) * dim_y);
-    GraphNode** row_high_x = malloc(sizeof(GraphNode*) * dim_y);
     /* The x coordinates of each neighbour row */
     int nbr_coord_low_x = (offset_x == 0)? cube_size - 1 : offset_x - 1;
-    int nbr_coord_high_x = (offset_x == 0)? cube_size - 1 : offset_x - 1;
-    /* Neighbour columns */
-    GraphNode** col_low_y = malloc(sizeof(GraphNode*) * dim_x);
-    GraphNode** col_high_y = malloc(sizeof(GraphNode*) * dim_x);
+    int nbr_coord_high_x = (max_x == cube_size - 1)? 0 : offset_x + 1;
     /* The y coordinates of each neighbour column */
     int nbr_coord_low_y = (offset_y == 0)? cube_size - 1 : offset_y - 1;
-    int nbr_coord_high_y = (offset_y == 0)? cube_size - 1 : offset_y - 1;
+    int nbr_coord_high_y = (max_y == cube_size - 1)? 0 : offset_y + 1;
 
     // TODO THE GENERATIONS LOOP SHOULD START ABOUT HERE
     // DECLARE VARIABLES OUTSIDE TO MINIMIZE HEAP
@@ -269,160 +251,133 @@ int main (int argc, char **argv) {
     snd_high_x = malloc(sizeof(Node) * snd_count_high_x);
     snd_low_y = malloc(sizeof(Node) * snd_count_low_y);
     snd_high_y = malloc(sizeof(Node) * snd_count_high_y);
-    snd_count_low_x=0; snd_count_low_y=0; snd_count_high_x=0; snd_count_high_y=0;
+    
+    snd_i = 0; snd_j = 0; snd_k = 0; snd_l = 0;
+
     /* Fill buffers */
-    for (i = 0; i < dim_y; i++){
-        for (it = local_graph[0][i]; it != NULL; it = it->next){
+    for (y = 0; y < dim_y; y++){
+        for (it = local_graph[0][y]; it != NULL; it = it->next){
             if (it->state == ALIVE){
-                snd_low_x[snd_count_low_x].x = 0;
-                snd_low_x[snd_count_low_x].y = i;
-                snd_low_x[snd_count_low_x].z = it->z;
-                snd_count_low_x++;
+                addToSndArray(snd_low_x, snd_i, offset_x, offset_y + y, it->z);
+                snd_i++;
             }
         }
-        for (it = local_graph[dim_x - 1][i]; it != NULL; it = it->next){
+        for (it = local_graph[dim_x - 1][y]; it != NULL; it = it->next){
             if (it->state == ALIVE){
-                snd_high_x[snd_count_high_x].x = dim_x - 1;
-                snd_high_x[snd_count_high_x].y = i;
-                snd_high_x[snd_count_high_x].z = it->z;
-                snd_count_high_x++;
+                addToSndArray(snd_high_x, snd_j, max_x, offset_y + y, it->z);
+                snd_j++;
             }
         }
     }
-    for (i = 0; i < dim_x; i++){
-        for (it = local_graph[i][0]; it != NULL; it = it->next){
+    for (x = 0; x < dim_x; x++){
+        for (it = local_graph[x][0]; it != NULL; it = it->next){
             if (it->state == ALIVE){
-                snd_low_y[snd_count_low_y].x = i;
-                snd_low_y[snd_count_low_y].y = 0;
-                snd_low_y[snd_count_low_y].z = it->z;
-                snd_count_low_y++;
+                addToSndArray(snd_low_y, snd_k, offset_x + x, offset_y, it->z);
+                snd_k++;
             }
         }
-        for (it = local_graph[i][dim_y - 1]; it != NULL; it = it->next){
+        for (it = local_graph[x][dim_y - 1]; it != NULL; it = it->next){
             if (it->state == ALIVE){
-                snd_high_y[snd_count_high_y].x = i;
-                snd_high_y[snd_count_high_y].y = dim_y - 1;
-                snd_high_y[snd_count_high_y].z = it->z;
-                snd_count_high_y++;
+                addToSndArray(snd_high_y, snd_l, offset_x + x, max_y, it->z);
+                snd_l++;
             }
         }
     }
-    rcv_count_low_x = 1;
-    rcv_count_high_x = 1;
-    rcv_count_low_y = 1;
-    rcv_count_high_y = 1;
 
-    if(coord[0] == 0){ //First ranks in this row
-        debug_print("Rank %d sending %d to rank %d\n",rank, snd_count_low_x, nbr_low_x);
-        MPI_Send(snd_low_x, snd_count_low_x, MPI_NEIGHBOUR_CELL, nbr_low_x, 0, MPI_COMM_WORLD);
-        debug_print("Rank %d receiving from rank %d\n", rank, nbr_low_x);
-        MPI_Status s1_x;
-        MPI_Probe(nbr_low_x, 0, MPI_COMM_WORLD, &s1_x);
-        MPI_Get_count(&s1_x, MPI_NEIGHBOUR_CELL, &rcv_count_low_x);
-        rcv_low_x = malloc(sizeof(Node) * rcv_count_low_x);
-        MPI_Recv(rcv_low_x, rcv_count_low_x, MPI_NEIGHBOUR_CELL, nbr_low_x, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    /***********************************************************************************/
 
-        debug_print("Rank %d receiving from rank %d\n",rank, nbr_high_x);
-        MPI_Status s2_x;
-        MPI_Probe(nbr_high_x, 0, MPI_COMM_WORLD, &s2_x);
-        MPI_Get_count(&s2_x, MPI_NEIGHBOUR_CELL, &rcv_count_high_x);
-        rcv_high_x = malloc(sizeof(Node) * rcv_count_high_x);
-        MPI_Recv(rcv_high_x, rcv_count_high_x, MPI_NEIGHBOUR_CELL, nbr_high_x, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        debug_print("Rank %d sending %d to rank %d\n",rank, snd_count_high_x, nbr_high_x);
-        MPI_Send(snd_high_x, snd_count_high_x, MPI_NEIGHBOUR_CELL, nbr_high_x, 0, MPI_COMM_WORLD);
-    }else{
-        debug_print("Rank %d receiving from rank %d\n",rank, nbr_high_x);
-        MPI_Status s2_x;
-        MPI_Probe(nbr_high_x, 0, MPI_COMM_WORLD, &s2_x);
-        MPI_Get_count(&s2_x, MPI_NEIGHBOUR_CELL, &rcv_count_high_x);
-        rcv_high_x = malloc(sizeof(Node) * rcv_count_high_x);
-        MPI_Recv(rcv_high_x, rcv_count_high_x, MPI_NEIGHBOUR_CELL, nbr_high_x, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        debug_print("Rank %d sending %d to rank %d\n",rank, snd_count_high_x, nbr_high_x);
-        MPI_Send(snd_high_x, snd_count_high_x, MPI_NEIGHBOUR_CELL, nbr_high_x, 0, MPI_COMM_WORLD);
+    // TODO DEBUG
+    MPI_Barrier(grid_comm);
 
-        debug_print("Rank %d sending %d to rank %d\n",rank, snd_count_low_x, nbr_low_x);
-        MPI_Send(snd_low_x, snd_count_low_x, MPI_NEIGHBOUR_CELL, nbr_low_x, 0, MPI_COMM_WORLD);
-        debug_print("Rank %d receiving from rank %d\n", rank, nbr_low_x);
-        MPI_Status s1_x;
-        MPI_Probe(nbr_low_x, 0, MPI_COMM_WORLD, &s1_x);
-        MPI_Get_count(&s1_x, MPI_NEIGHBOUR_CELL, &rcv_count_low_x);
-        rcv_low_x = malloc(sizeof(Node) * rcv_count_low_x);
-        MPI_Recv(rcv_low_x, rcv_count_low_x, MPI_NEIGHBOUR_CELL, nbr_low_x, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
+    // TODO MAYBE IRRELEVANT, SINCE THEY GET SET ANYWAY
+    /* Reset the counters of live neighbour cells to be received by each neighbour */
+    rcv_count_low_x = 0; rcv_count_high_x = 0; rcv_count_low_y = 0; rcv_count_high_y = 0;
 
-    if(coord[1] == 0){
-        debug_print("Rank %d sending %d to rank %d\n",rank, snd_count_low_y, nbr_low_y);
-        MPI_Send(snd_low_y, snd_count_low_y, MPI_NEIGHBOUR_CELL, nbr_low_y, 0, MPI_COMM_WORLD);
-        debug_print("Rank %d receiving from rank %d\n", rank, nbr_low_y);
-        MPI_Status s1_y;
-        MPI_Probe(nbr_low_y, 0, MPI_COMM_WORLD, &s1_y);
-        MPI_Get_count(&s1_y, MPI_NEIGHBOUR_CELL, &rcv_count_low_y);
-        rcv_low_y = malloc(sizeof(Node) * rcv_count_low_y);
-        MPI_Recv(rcv_low_y, rcv_count_low_y, MPI_NEIGHBOUR_CELL, nbr_low_y, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    /***********************************************************************************/
 
-        debug_print("Rank %d receiving from rank %d\n",rank, nbr_high_y);
-        MPI_Status s2_y;
-        MPI_Probe(nbr_high_y, 0, MPI_COMM_WORLD, &s2_y);
-        MPI_Get_count(&s2_y, MPI_NEIGHBOUR_CELL, &rcv_count_high_y);
-        rcv_high_y = malloc(sizeof(Node) * rcv_count_high_y);
-        MPI_Recv(rcv_high_y, rcv_count_high_y, MPI_NEIGHBOUR_CELL, nbr_high_y, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        debug_print("Rank %d sending %d to rank %d\n",rank, snd_count_high_y, nbr_high_y);
-        MPI_Send(snd_high_y, snd_count_high_y, MPI_NEIGHBOUR_CELL, nbr_high_y, 0, MPI_COMM_WORLD);
+    /* Send borders to neighbours */
+    sendBorder(grid_comm, TAG_LOW_X, cart_rank, nbr_low_x,
+        &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_low_x, snd_count_low_x);
+    sendBorder(grid_comm, TAG_HIGH_X, cart_rank, nbr_high_x,
+        &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_high_x, snd_count_high_x);
+    sendBorder(grid_comm, TAG_LOW_Y, cart_rank, nbr_low_y,
+        &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_low_y, snd_count_low_y);
+    sendBorder(grid_comm, TAG_HIGH_Y, cart_rank, nbr_high_y,
+        &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_high_y, snd_count_high_y);
 
-    }else{
-        debug_print("Rank %d receiving from rank %d\n",rank, nbr_high_y);
-        MPI_Status s2_y;
-        MPI_Probe(nbr_high_y, 0, MPI_COMM_WORLD, &s2_y);
-        MPI_Get_count(&s2_y, MPI_NEIGHBOUR_CELL, &rcv_count_high_y);
-        rcv_high_y = malloc(sizeof(Node) * rcv_count_high_y);
-        MPI_Recv(rcv_high_y, rcv_count_high_y, MPI_NEIGHBOUR_CELL, nbr_high_y, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        debug_print("Rank %d sending %d to rank %d\n",rank, snd_count_high_y, nbr_high_y);
-        MPI_Send(snd_high_y, snd_count_high_y, MPI_NEIGHBOUR_CELL, nbr_high_y, 0, MPI_COMM_WORLD);
+    /* Receive borders from neighbours */
+    rcv_count_low_x = receiveBorder(grid_comm, TAG_HIGH_X, cart_rank, nbr_low_x,
+        &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_low_x);
+    rcv_count_high_x = receiveBorder(grid_comm, TAG_LOW_X, cart_rank, nbr_high_x,
+        &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_high_x);
+    rcv_count_low_y = receiveBorder(grid_comm, TAG_HIGH_Y, cart_rank, nbr_low_y,
+        &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_low_y);
+    rcv_count_high_y = receiveBorder(grid_comm, TAG_LOW_Y, cart_rank, nbr_high_y,
+        &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_high_y);
 
-        debug_print("Rank %d sending %d to rank %d\n",rank, snd_count_low_y, nbr_low_y);
-        MPI_Send(snd_low_y, snd_count_low_y, MPI_NEIGHBOUR_CELL, nbr_low_y, 0, MPI_COMM_WORLD);
-        debug_print("Rank %d receiving from rank %d\n", rank, nbr_low_y);
-        MPI_Status s1_y;
-        MPI_Probe(nbr_low_y, 0, MPI_COMM_WORLD, &s1_y);
-        MPI_Get_count(&s1_y, MPI_NEIGHBOUR_CELL, &rcv_count_low_y);
-        rcv_low_y = malloc(sizeof(Node) * rcv_count_low_y);
-        MPI_Recv(rcv_low_y, rcv_count_low_y, MPI_NEIGHBOUR_CELL, nbr_low_y, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    // TODO Maybe evaluate MPI status just in case, create a checker function?
 
-    }
-    debug_print("Rank %d finished exchanging frontiers\n",rank);
+    /***********************************************************************************/
 
-    // TODO - Proccess nodes that are not on our side of the frontier in this processor
-    for(i = 1; i < dim_x - 1; i++){
-        for(j = 1; j < dim_y - 1; j++){
-            for(it = local_graph[i][j]; it != NULL; it = it->next){
-                if(it->state == ALIVE){
-                    //CUBE SIZE IS COMPLETLY IRRELEVANT
-                    visitNeighbours(local_graph, cube_size, i, j, it->z);
+    // TODO DEBUG
+    MPI_Barrier(grid_comm);
+    if (rank == ROOT) debug_print("Finished exchanging frontiers");
+
+    /***********************************************************************************/
+
+    /* Process internal nodes, i.e. not on the boundary of the local graph */
+    for (x = 1; x < dim_x - 1; x++){
+        for (y = 1; y < dim_y - 1; y++){
+            for (it = local_graph[x][y]; it != NULL; it = it->next){
+                if (it->state == ALIVE){
+                    visitInternalNeighbours(local_graph, x, y, it->z);
                 }
             }
         }
     }
-    // TODO - Proccess nodes that are on our frontier
-
-    // TODO - Taking in consideration all received frontiers update the frontiers in the previous step
-
-
-
-    /* Allocate buffers to received sent */
-    //rcv_low_x = malloc(sizeof(Node) * rcv_count_low_x);
-    //rcv_high_x = malloc(sizeof(Node) * rcv_count_high_x);
-    //rcv_low_y = malloc(sizeof(Node) * rcv_count_low_y);
-    //rcv_high_y = malloc(sizeof(Node) * rcv_count_high_y);
 
     /***********************************************************************************/
 
-    // CLEANUP BUFFERS
+    /* Process nodes on the boundaries */
+    
+    /* Process first row (except first and last elements) */
+    for (y = 1; i < dim_y - 1; i++){
+        for (it = local_graph[0][y]; it != NULL; it = it->next){
+            visitBoundaryNeighbours(local_graph, dim_x, dim_y, 0, y, it->z);
+        }
+    }
+
+    /* Process first and last columns */
+    for (x = 0; x < dim_x; x += dim_x -1){
+        for (y = 0; y < dim_y; y++){
+            for (it = local_graph[x][y]; it != NULL; it = it->next){
+                visitBoundaryNeighbours(local_graph, dim_x, dim_y, x, y, it->z);
+            }
+        }
+    }    
+
+    /* Process last row (except first and last elements) */
+    for (y = 1; i < dim_y - 1; i++){
+        for (it = local_graph[dim_x - 1][y]; it != NULL; it = it->next){
+            visitBoundaryNeighbours(local_graph, dim_x, dim_y, dim_x - 1, y, it->z);
+        }
+    }
 
     /***********************************************************************************/
 
-    // PROCESS GENERATION
+    /* Process neighbour nodes */
 
     /***********************************************************************************/
+
+    /* Cleanup sending buffers */
+    free(snd_low_x);
+    free(snd_high_x);
+    free(snd_low_y);
+    free(snd_high_y);
+    
+    /***********************************************************************************/
+
+    /* TODO - GENERATION LOOP SHOULD STOP HERE */
 
     /* Clean up */
     freeGraph(local_graph, dim_x, dim_y);
@@ -433,9 +388,6 @@ int main (int argc, char **argv) {
     MPI_Finalize();
 }
 
-/**
- *
- */
 void parseArgs(int argc, char* argv[], char** file, int* generations){
     if (argc == 3){
         char* file_name = malloc(sizeof(char) * (strlen(argv[1]) + 1));
@@ -448,4 +400,44 @@ void parseArgs(int argc, char* argv[], char** file, int* generations){
     }
     printf("Usage: %s [data_file.in] [number_generations]", argv[0]);
     exit(EXIT_FAILURE);
+}
+
+
+void insertLocalGraph(GraphNode ***graph, int offset_x, int offset_y, int x, int y, int z){
+
+    int mapped_x = (offset_x == 0)? x : x % offset_x;
+    int mapped_y = (offset_y == 0)? y : y % offset_y;
+    graph[mapped_x][mapped_y] = graphNodeInsert(graph[mapped_x][mapped_y], z, ALIVE);
+}
+
+
+void addToSndArray(Node *array, int index, int x, int y, int z){
+
+    array[index].x = x;
+    array[index].y = y;
+    array[index].z = z;
+}
+
+void sendBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
+                MPI_Status *status_snd, MPI_Datatype mpi_datatype,
+                Node *snd, int snd_size){
+
+    MPI_Send(snd, snd_size, mpi_datatype, nbr_rank, mpi_tag, mpi_comm);
+    debug_print("Rank %d <-> %d - sent %d (TAG %d)", my_rank, nbr_rank, snd_size, mpi_tag);
+}
+
+int receiveBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
+                    MPI_Status *status_prb, MPI_Status *status_rcv,
+                    MPI_Datatype mpi_datatype, Node **rcv){
+
+    int rcv_size = 0;
+    
+    MPI_Probe(nbr_rank, mpi_tag, mpi_comm, status_prb);
+    MPI_Get_count(status_prb, mpi_datatype, &rcv_size);
+    *rcv = malloc(sizeof(Node) * rcv_size);
+    MPI_Recv(rcv, rcv_size, mpi_datatype, nbr_rank, mpi_tag, mpi_comm, MPI_STATUS_IGNORE);
+    
+    debug_print("Rank %d <-> %d - received %d (TAG %d)", my_rank, nbr_rank, rcv_size, mpi_tag);
+
+    return rcv_size;
 }
