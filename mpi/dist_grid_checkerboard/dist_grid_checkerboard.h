@@ -7,7 +7,7 @@
 #include <mpi.h>
 #include <math.h>
 #include "graph.h"
-
+#include "debug.h"
 /* MPI Cartesian Mapping Definitions */
 
 /**< MPI Cartesian Grid Dimensionality */
@@ -38,32 +38,14 @@
 #define TAG_HIGH_Y 50
 
 /**< Dead node removal period */
-#define REMOVAL_PERIOD 5 
-
-/* TODO - Migrate to debug.h */
-
-#define VERBOSE 1
-
-#ifdef VERBOSE
-/** */
-#define debug_print(M, ...) do {printf("DEBUG: %s:%d:%s: " M "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__); fflush(stdout);} while(0)
-#else
-#define debug_print(M, ...)
-#endif
-
-#ifdef VERBOSE
-/** */
-#define rank_print(a) do{ printf("@RANK %d - ", a); fflush(stdout);}while(0)
-#else
-#define rank_print(a)
-#endif
+#define REMOVAL_PERIOD 5
 
 /* Function headers */
 
 /**
  * @brief [brief description]
  * @details [long description]
- * 
+ *
  * @param argc [description]
  * @param argv [description]
  * @param file [description]
@@ -74,7 +56,7 @@ void parseArgs(int argc, char* argv[], char** file, int* generations);
 /**
  * @brief [brief description]
  * @details [long description]
- * 
+ *
  * @param graph [description]
  * @param offset_x [description]
  * @param offset_y [description]
@@ -87,7 +69,7 @@ void insertLocalGraph(GraphNode ***graph, int offset_x, int offset_y, int x, int
 /**
  * @brief [brief description]
  * @details [long description]
- * 
+ *
  * @param array [description]
  * @param index [description]
  * @param x [description]
@@ -99,7 +81,7 @@ void addToSndArray(Node *array, int index, int x, int y, int z);
 /**
  * @brief [brief description]
  * @details [long description]
- * 
+ *
  * @param mpi_comm [description]
  * @param mpi_tag [description]
  * @param my_rank [description]
@@ -116,7 +98,7 @@ void sendBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
 /**
  * @brief [brief description]
  * @details [long description]
- * 
+ *
  * @param mpi_comm [description]
  * @param mpi_tag [description]
  * @param my_rank [description]

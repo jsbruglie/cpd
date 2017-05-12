@@ -27,7 +27,7 @@ int main (int argc, char **argv) {
     int generations;
 
     /* Auxiliary variables */
-    
+
     /* Main program execution */
 
     /**< Live neighbours counter */
@@ -40,7 +40,7 @@ int main (int argc, char **argv) {
     int i, j;
     int snd_i, snd_j, snd_k, snd_l;
     GraphNode *it;
-    
+
     /* Function return values and status codes */
     int mpi_rv;
     MPI_Status mpi_status_prb, mpi_status_snd, mpi_status_rcv;
@@ -72,6 +72,13 @@ int main (int argc, char **argv) {
     Node* rcv_low_y;
     Node* rcv_high_y;
 
+    /* Final gather variables */
+    int local_graph_length;
+    int* lg_lengths;
+    int* lg_displs;
+    int total_length;
+    Node* all_lg;
+    Node* lg_send;
     /***********************************************************************************/
 
     /* MPI */
@@ -259,7 +266,7 @@ int main (int argc, char **argv) {
         snd_high_x = malloc(sizeof(Node) * snd_count_high_x);
         snd_low_y = malloc(sizeof(Node) * snd_count_low_y);
         snd_high_y = malloc(sizeof(Node) * snd_count_high_y);
-        
+
         snd_i = 0; snd_j = 0; snd_k = 0; snd_l = 0;
 
         /* Fill buffers */
@@ -329,7 +336,7 @@ int main (int argc, char **argv) {
 
         /* TODO - Is this necessary? Or do the blocking receive calls handle this */
         MPI_Barrier(grid_comm);
-        
+
         // TODO DEBUG
         //debug_print("Rank %d Finished exchanging boundaries", cart_rank);
 
@@ -340,7 +347,7 @@ int main (int argc, char **argv) {
             for (y = 1; y < dim_y - 1; y++){
                 for (it = local_graph[x][y]; it != NULL; it = it->next){
                     if (it->state == ALIVE){
-                        visitInternalNeighbours(local_graph, x, y, it->z);
+                        visitInternalNeighbours(local_graph, cube_size, x, y, it->z);
                     }
                 }
             }
@@ -353,20 +360,20 @@ int main (int argc, char **argv) {
     /***********************************************************************************/
 
         /* Process nodes on the boundaries */
-        
+
         /* Check corner cases (blocks with only a single row or column) */
 
         /* Process first row (except first and last elements) */
         for (y = 1; y < dim_y - 1; y++){
             for (it = local_graph[0][y]; it != NULL; it = it->next){
-                visitBoundaryNeighbours(local_graph, dim_x, dim_y, 0, y, it->z);
+                visitBoundaryNeighbours(local_graph, cube_size, dim_x, dim_y, 0, y, it->z);
             }
         }
 
         /* Process first column */
         for (x = 0; x < dim_x; x++){
             for (it = local_graph[x][0]; it != NULL; it = it->next){
-                visitBoundaryNeighbours(local_graph, dim_x, dim_y, x, 0, it->z);
+                visitBoundaryNeighbours(local_graph, cube_size, dim_x, dim_y, x, 0, it->z);
             }
         }
 
@@ -375,8 +382,8 @@ int main (int argc, char **argv) {
         if (dim_y > 0){
             for (x = 0; x < dim_x; x++){
                 for (it = local_graph[x][dim_y - 1]; it != NULL; it = it->next){
-                    visitBoundaryNeighbours(local_graph, dim_x, dim_y, x, dim_y - 1, it->z);
-                }            
+                    visitBoundaryNeighbours(local_graph, cube_size, dim_x, dim_y, x, dim_y - 1, it->z);
+                }
             }
         }
 
@@ -386,7 +393,7 @@ int main (int argc, char **argv) {
             /* Process last row (except first and last elements) */
             for (y = 1; y < dim_y - 1; y++){
                 for (it = local_graph[dim_x - 1][y]; it != NULL; it = it->next){
-                    visitBoundaryNeighbours(local_graph, dim_x, dim_y, dim_x - 1, y, it->z);
+                    visitBoundaryNeighbours(local_graph, cube_size, dim_x, dim_y, dim_x - 1, y, it->z);
                 }
             }
         }
@@ -421,14 +428,14 @@ int main (int argc, char **argv) {
         for (i = 0; i < rcv_count_low_y; i++){
             x = rcv_low_y[i].x - offset_x;
             z = rcv_low_y[i].z;
-            graphNodeAddNeighbour(&(local_graph[x][0]), z);        
+            graphNodeAddNeighbour(&(local_graph[x][0]), z);
         }
 
         /* Process higher y column */
         for (i = 0; i < rcv_count_high_y; i++){
             x = rcv_high_y[i].x - offset_x;
             z = rcv_high_y[i].z;
-            graphNodeAddNeighbour(&(local_graph[x][dim_y - 1]), z);        
+            graphNodeAddNeighbour(&(local_graph[x][dim_y - 1]), z);
         }
 
         // TODO DEBUG
@@ -470,14 +477,78 @@ int main (int argc, char **argv) {
         /* Cleanup sending buffers */
         free(snd_low_x); free(snd_high_x);
         free(snd_low_y); free(snd_high_y);
-        
+
     /***********************************************************************************/
 
     } // END MAIN FOR LOOP
 
     /***********************************************************************************/
-
+    /* Compute local graph size*/
+    local_graph_length = 0;
+    for(x = 0; x < dim_x; x++){
+        for(y = 0; y < dim_y; y++){
+            for(it = local_graph[x][y]; it != NULL; it = it->next){
+                if(it->state == ALIVE){
+                    local_graph_length++;
+                }
+            }
+        }
+    }
+    if(rank == ROOT){
+        lg_lengths = (int*)malloc(sizeof(int)*n_processes);
+        lg_lengths[ROOT] = local_graph_length; //lc_length of root was already computed
+    }
+    /***********************************************************************************/
+    /* Announce local graph size to root */
+    MPI_Gather(&local_graph_length, 1, MPI_INT, lg_lengths, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
+    if(rank == ROOT){
+        //We should have lc lengths here (from each proc)
+        for(i=0; i<n_processes; i++){
+            debug_print("ROOT got local graph length %d from rank %d\n", lg_lengths[i], i);
+        }
+        lg_displs = (int*)malloc(sizeof(int)*n_processes); /* Displacements */
+        total_length = 0;
+        for(i=0; i<n_processes; i++){
+            lg_displs[i] = total_length;
+            total_length += lg_lengths[i];
+        }
+        /* Buffer to receive all local graphs */
+        all_lg = (Node*)malloc(sizeof(Node) * total_length);
+    }
+    /***********************************************************************************/
+    /* Fill buffer to send to ROOT from local graph */
+    lg_send = (Node*)malloc(sizeof(Node) * local_graph_length);
+    local_graph_length=0;
+    for(x = 0; x < dim_x; x++){
+        for(y = 0; y < dim_y; y++){
+            for(it = local_graph[x][y]; it != NULL; it = it->next){
+                if(it->state == ALIVE){
+                    lg_send[local_graph_length].x = x + offset_x; //add the offset so the x value is the real value (not the local)
+                    lg_send[local_graph_length].y = y + offset_y; //add the offset so the y value is the real value (not the local)
+                    lg_send[local_graph_length].z = it->z;
+                    local_graph_length++;
+                }
+            }
+        }
+    }
     /* Gather global graph in ROOT process */
+    MPI_Gatherv(lg_send, local_graph_length, MPI_NEIGHBOUR_CELL, all_lg, lg_lengths, lg_displs, MPI_NEIGHBOUR_CELL, ROOT, MPI_COMM_WORLD);
+    if(rank == ROOT){
+        /***************ROOT SHOULD HAVE ALL ARRAYS HERE***********************/
+        //Transform all_lg to final global graph
+        global_graph = initGraph(cube_size,cube_size);
+        for(i=0; i<total_length; i++){
+            x = all_lg[i].x;
+            y = all_lg[i].y;
+            z = all_lg[i].z;
+            global_graph[x][y] = graphNodeInsert(global_graph[x][y], z, ALIVE);
+        }
+        /* Print the final set of live cells */
+        printAndSortActive(global_graph, cube_size);fflush(stdout);
+
+        //Free graphs
+        freeGraph(global_graph, cube_size, cube_size);
+    }
 
     // TODO
 
@@ -537,10 +608,10 @@ int receiveBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
                     MPI_Datatype mpi_datatype, Node **rcv){
 
     int rcv_size = 0;
-    
+
     MPI_Probe(nbr_rank, mpi_tag, mpi_comm, status_prb);
     MPI_Get_count(status_prb, mpi_datatype, &rcv_size);
-    
+
     *rcv = malloc(sizeof(Node) * rcv_size);
     MPI_Recv(*rcv, rcv_size, mpi_datatype, nbr_rank, mpi_tag, mpi_comm, MPI_STATUS_IGNORE);
 
