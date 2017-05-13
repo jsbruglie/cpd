@@ -1,3 +1,13 @@
+/**
+ * @file graph.h
+ * @brief Sparse graph representation for Game Of Life 3D MPI Implementation
+ * 
+ * @author João Borrego
+ * @author Pedro Abreu
+ * @author Miguel Cardoso
+ * @bug No known bugs.  
+ */
+
 #ifndef GRAPH_H
 #define GRAPH_H
 

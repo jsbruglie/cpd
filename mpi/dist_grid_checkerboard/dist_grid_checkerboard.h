@@ -1,3 +1,20 @@
+/**
+ * @file dist_grid_checkerboard.c
+ * @brief Game Of Life 3D MPI Implementation
+ * 
+ * @details Uses checkerboard decomposition to scatter the 
+ * 3D graph across several processes.
+ * If an invalid configuration is provided the program will not attempt
+ * to run, and will notify the user instead.
+ * 
+ * @attention Each process is assumed to have access to the input file!
+ *  
+ * @author João Borrego
+ * @author Pedro Abreu
+ * @author Miguel Cardoso
+ * @bug No known bugs.  
+ */
+
 #ifndef DIST_GRID_CHECKERBOARD_H
 #define DIST_GRID_CHECKERBOARD_H
 
@@ -6,8 +23,10 @@
 #include <string.h>
 #include <mpi.h>
 #include <math.h>
+
 #include "graph.h"
 #include "debug.h"
+
 /* MPI Cartesian Mapping Definitions */
 
 /**< MPI Cartesian Grid Dimensionality */

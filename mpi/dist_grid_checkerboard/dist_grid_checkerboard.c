@@ -9,10 +9,10 @@
  * 
  * @attention Each process is assumed to have access to the input file!
  *  
- *  @author João Borrego
- *  @author Pedro Abreu
- *  @author Miguel Cardoso
- *  @bug No known bugs.  
+ * @author João Borrego
+ * @author Pedro Abreu
+ * @author Miguel Cardoso
+ * @bug No known bugs.  
  */
 
 #include "dist_grid_checkerboard.h"
@@ -21,9 +21,9 @@ int main (int argc, char **argv) {
 
     /* Main program variables */
 
-    /**< Global graph representation */
+    /** Global graph representation */
     GraphNode ***global_graph;
-    /**< Local graph representation */
+    /** Local graph representation */
     GraphNode ***local_graph;
 
     /* Local graph dimensions */
@@ -32,18 +32,18 @@ int main (int argc, char **argv) {
 
     int n_processes, rank;
 
-    /**< Size of the side of the cube space */
+    /** Size of the side of the cube space */
     int cube_size;
-    /**< Number of generations to be computed */
+    /** Number of generations to be computed */
     int generations;
 
     /* Auxiliary variables */
 
     /* Main program execution */
 
-    /**< Live neighbours counter */
+    /** Live neighbours counter */
     int live_neighbours;
-    /**< Generations counter */
+    /** Generations counter */
     int g;
 
     /* Iterative variables*/
@@ -61,28 +61,16 @@ int main (int argc, char **argv) {
     char buffer[BUFFER_SIZE] = {0};
 
     /* Number of live cells to be sent to each neighbour */
-    int snd_count_low_x;
-    int snd_count_high_x;
-    int snd_count_low_y;
-    int snd_count_high_y;
+    int snd_count_low_x, snd_count_high_x, snd_count_low_y, snd_count_high_y;
 
     /* Frontier buffers to be sent to each neighbour */
-    RNode* snd_low_x;
-    RNode* snd_high_x;
-    RNode* snd_low_y;
-    RNode* snd_high_y;
+    RNode *snd_low_x, *snd_high_x, *snd_low_y, *snd_high_y;
 
     /* Number of live cells to be received from each neighbour */
-    int rcv_count_low_x;
-    int rcv_count_high_x;
-    int rcv_count_low_y;
-    int rcv_count_high_y;
+    int rcv_count_low_x, rcv_count_high_x, rcv_count_low_y, rcv_count_high_y;
 
     /* Frontier buffers to be received from each neighbour */
-    RNode* rcv_low_x;
-    RNode* rcv_high_x;
-    RNode* rcv_low_y;
-    RNode* rcv_high_y;
+    RNode *rcv_low_x, *rcv_high_x, *rcv_low_y, *rcv_high_y;
 
     /* Final gather variables */
     int local_graph_length;
@@ -113,7 +101,6 @@ int main (int argc, char **argv) {
 
     /***********************************************************************************/
 
-    // TODO DEBUG
     //if (rank == ROOT) debugPrint("Number of processes %d", n_processes);
 
     /* MPI Create a structure to send cells across processes */
@@ -160,7 +147,6 @@ int main (int argc, char **argv) {
     int cart_rank;
     MPI_Cart_rank(grid_comm, coord, &cart_rank);
 
-    // TODO BEGIN DEBUG
     /*
     if (rank == ROOT){
         for (i = 0; i < N_DIMS; i++) {
@@ -168,7 +154,6 @@ int main (int argc, char **argv) {
         }
     }
     */
-    // TODO END
 
     /* Get neighbours */
     /* axis = 0 (X) p[row-1] : curr_p : p[row+1] */
@@ -177,13 +162,11 @@ int main (int argc, char **argv) {
     MPI_Cart_shift(grid_comm, SHIFT_ROW, DISP, &nbr_low_x, &nbr_high_x);
     MPI_Cart_shift(grid_comm, SHIFT_COL, DISP, &nbr_low_y, &nbr_high_y);
 
-    // TODO BEGIN DEBUG
     /*
     MPI_Barrier(grid_comm);
     debugPrint("(%d,%d) Rank %d Neighbour x lo %d hi %d y: lo %d hi %d",
         coord[0], coord[1], cart_rank, nbr_low_x, nbr_high_x, nbr_low_y, nbr_high_y);
     */
-    // TODO END
 
     /***********************************************************************************/
 
@@ -228,14 +211,12 @@ int main (int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    // TODO DEBUG
     //MPI_Barrier(grid_comm);
     //debugPrint("(%d,%d) Rank %d offset_x %d offset y %d dim_x %d dim_y %d",
     //    coord[0], coord[1], cart_rank, offset_x, offset_y, dim_x, dim_y);
 
     /***********************************************************************************/
 
-    // TODO DEBUG
     //MPI_Barrier(grid_comm);
 
     /* Fill local graph structure */
@@ -248,26 +229,13 @@ int main (int argc, char **argv) {
             if ((offset_x <= x && x <= max_x) && (offset_y <= y && y <= max_y)){
                 mapped_x = x - offset_x; mapped_y = y - offset_y;
                 local_graph[mapped_x][mapped_y] = graphNodeInsert(local_graph[mapped_x][mapped_y], z, ALIVE);
-                // TODO DEBUG
                 //debugPrint("(%d,%d) Rank %d - Inserting (%d,%d,%d)", coord[0], coord[1], cart_rank, x, y, z);
             }
         }
     }
     //debugPrint("(%d,%d) Rank %d - Finished inserting nodes", coord[0], coord[1], cart_rank);
 
-    // TODO DEBUG
     //MPI_Barrier(grid_comm);
-
-    /***********************************************************************************/
-
-    /* Calculate coordinates of neighbour rows and columns */
-
-    /* The x coordinates of each neighbour row */
-    int nbr_coord_low_x = (offset_x == 0)? cube_size - 1 : offset_x - 1;
-    int nbr_coord_high_x = (max_x == cube_size - 1)? 0 : offset_x + 1;
-    /* The y coordinates of each neighbour column */
-    int nbr_coord_low_y = (offset_y == 0)? cube_size - 1 : offset_y - 1;
-    int nbr_coord_high_y = (max_y == cube_size - 1)? 0 : offset_y + 1;
 
     /***********************************************************************************/
 
@@ -344,11 +312,9 @@ int main (int argc, char **argv) {
 
     /***********************************************************************************/
 
-        // TODO DEBUG
         //MPI_Barrier(grid_comm);
         //debugPrint("Finished adding boundary to send arrays");
 
-        // TODO MAYBE IRRELEVANT, SINCE THEY GET SET ANYWAY
         /* Reset the counters of live neighbour cells to be received by each neighbour */
         rcv_count_low_x = 0; rcv_count_high_x = 0; rcv_count_low_y = 0; rcv_count_high_y = 0;
 
@@ -379,15 +345,10 @@ int main (int argc, char **argv) {
             &(snd_req[3]), MPI_R_NEIGHBOUR_CELL, snd_high_y, snd_count_high_y);
         rcv_count_low_y = receiveBorder(grid_comm, TAG_HIGH_Y, cart_rank, nbr_low_y,
             &(rcv_req[2]), &mpi_status_prb, MPI_R_NEIGHBOUR_CELL, &rcv_low_y);
-        
-        // TODO Maybe evaluate MPI status just in case, create a checker function?
 
     /***********************************************************************************/
 
-        /* TODO - Is this necessary? Or do the blocking receive calls handle this */
         //MPI_Barrier(grid_comm);
-
-        // TODO DEBUG
         //debugPrint("Rank %d Finished exchanging boundaries", cart_rank);
 
     /***********************************************************************************/
@@ -403,7 +364,6 @@ int main (int argc, char **argv) {
             }
         }
 
-        // TODO DEBUG
         //MPI_Barrier(grid_comm);
         //debugPrint("Rank %d Finished visiting internal cells", cart_rank);
 
