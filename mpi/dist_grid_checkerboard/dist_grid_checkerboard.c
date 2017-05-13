@@ -224,7 +224,7 @@ int main (int argc, char **argv) {
     //debugPrint("(%d,%d) Rank %d - Finished inserting nodes", coord[0], coord[1], cart_rank);
 
     // TODO DEBUG
-    MPI_Barrier(grid_comm);
+    //MPI_Barrier(grid_comm);
 
     /***********************************************************************************/
 
@@ -314,6 +314,7 @@ int main (int argc, char **argv) {
 
         // TODO DEBUG
         //MPI_Barrier(grid_comm);
+        //debugPrint("Finished adding boundary to send arrays");
 
         // TODO MAYBE IRRELEVANT, SINCE THEY GET SET ANYWAY
         /* Reset the counters of live neighbour cells to be received by each neighbour */
@@ -321,32 +322,38 @@ int main (int argc, char **argv) {
 
     /***********************************************************************************/
 
-        /* Send borders to neighbours */
+        /* Send and receive borders to/from neighbours */
+        
+        /* Communicate with lower x neighbour */
         sendBorder(grid_comm, TAG_LOW_X, cart_rank, nbr_low_x,
             &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_low_x, snd_count_low_x);
-        sendBorder(grid_comm, TAG_HIGH_X, cart_rank, nbr_high_x,
-            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_high_x, snd_count_high_x);
-        sendBorder(grid_comm, TAG_LOW_Y, cart_rank, nbr_low_y,
-            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_low_y, snd_count_low_y);
-        sendBorder(grid_comm, TAG_HIGH_Y, cart_rank, nbr_high_y,
-            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_high_y, snd_count_high_y);
-
-        /* Receive borders from neighbours */
-        rcv_count_low_x = receiveBorder(grid_comm, TAG_HIGH_X, cart_rank, nbr_low_x,
-            &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_low_x);
         rcv_count_high_x = receiveBorder(grid_comm, TAG_LOW_X, cart_rank, nbr_high_x,
             &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_high_x);
-        rcv_count_low_y = receiveBorder(grid_comm, TAG_HIGH_Y, cart_rank, nbr_low_y,
-            &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_low_y);
+
+        /* Communicate with higher x neighbour */
+        sendBorder(grid_comm, TAG_HIGH_X, cart_rank, nbr_high_x,
+            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_high_x, snd_count_high_x);
+        rcv_count_low_x = receiveBorder(grid_comm, TAG_HIGH_X, cart_rank, nbr_low_x,
+            &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_low_x);
+        
+        /* Communicate with lower y neighbour */
+        sendBorder(grid_comm, TAG_LOW_Y, cart_rank, nbr_low_y,
+            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_low_y, snd_count_low_y);
         rcv_count_high_y = receiveBorder(grid_comm, TAG_LOW_Y, cart_rank, nbr_high_y,
             &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_high_y);
 
+        /* Communicate with higher y neighbour */
+        sendBorder(grid_comm, TAG_HIGH_Y, cart_rank, nbr_high_y,
+            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_high_y, snd_count_high_y);
+        rcv_count_low_y = receiveBorder(grid_comm, TAG_HIGH_Y, cart_rank, nbr_low_y,
+            &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_low_y);
+        
         // TODO Maybe evaluate MPI status just in case, create a checker function?
 
     /***********************************************************************************/
 
         /* TODO - Is this necessary? Or do the blocking receive calls handle this */
-        MPI_Barrier(grid_comm);
+        //MPI_Barrier(grid_comm);
 
         // TODO DEBUG
         //debugPrint("Rank %d Finished exchanging boundaries", cart_rank);

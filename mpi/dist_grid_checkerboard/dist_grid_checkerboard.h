@@ -26,16 +26,14 @@
 
 /* Communication tags */
 
-/**< Macro for representing border object communications */
-#define TAG_BORDER 10
 /**< Macro for identifying communication between current process and lower x neighbour */
-#define TAG_LOW_X 20
+#define TAG_LOW_X 100
 /**< Macro for identifying communication between current process and higher x neighbour */
-#define TAG_HIGH_X 30
+#define TAG_HIGH_X 200
 /**< Macro for identifying communication between current process and lower y neighbour */
-#define TAG_LOW_Y 40
+#define TAG_LOW_Y 300
 /**< Macro for identifying communication between current process and higher y neighbour */
-#define TAG_HIGH_Y 50
+#define TAG_HIGH_Y 400
 
 /* General Macros */
 
