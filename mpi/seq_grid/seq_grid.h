@@ -29,13 +29,13 @@ typedef unsigned char bool;
 void visitNeighbours(GraphNode*** graph, int cube_size, coordinate x, coordinate y, coordinate z);
 
 /** @brief Initializes the graph representation structure
- *  
+ *
  *  @param size The size of the side of the cube that represents the 3D space
  */
 GraphNode*** initGraph(int size);
 
 /** @brief Frees the graph representation from memory
- *  
+ *
  *  @param size The size of the side of the cube that represents the 3D space
  */
 void freeGraph(GraphNode*** graph, int size);
@@ -45,7 +45,7 @@ void freeGraph(GraphNode*** graph, int size);
  *  @attention Should not be called while processing generations,
  *  as sorting breaks pointer logic with list
  *
- *  @param graph The graph representation    
+ *  @param graph The graph representation
  *  @param size The size of the side of the cube that represents the 3D space
  */
 void printAndSortActive(GraphNode*** graph, int cube_size);
@@ -54,16 +54,16 @@ void printAndSortActive(GraphNode*** graph, int cube_size);
  *
  *  @param argc Number of arguments
  *  @param argv Argument string
- *  @param file Output   
+ *  @param file Output
  */
 void parseArgs(int argc, char* argv[], char** file, int* generations);
 
-/** @brief Parse input file contents 
+/** @brief Parse input file contents
  *
  *  @param file Filename string
  *  @param list List for keeping track of live cells and neighbours
  *  @param cube_size The size of the side of the cube that represents the 3D space
  */
-GraphNode*** parseFile(char* file, int* cube_size);    
+GraphNode*** parseFile(char* file, int* cube_size);
 
 #endif
