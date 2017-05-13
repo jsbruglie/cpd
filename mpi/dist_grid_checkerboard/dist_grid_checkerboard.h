@@ -95,7 +95,7 @@ void addToSndArray(Node *array, int index, int x, int y, int z);
  * @param snd_size [description]
  */
 void sendBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
-                MPI_Status *status_snd, MPI_Datatype mpi_datatype,
+               MPI_Request *req, MPI_Datatype mpi_datatype,
                 Node *snd, int snd_size);
 
 /**
@@ -113,7 +113,7 @@ void sendBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
  * @return [description]
  */
 int receiveBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
-                    MPI_Status *status_prb, MPI_Status *status_rcv,
+                    MPI_Request *req, MPI_Status *status_prb,
                     MPI_Datatype mpi_datatype, Node **rcv);
 
 #endif

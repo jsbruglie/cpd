@@ -44,6 +44,7 @@ int main (int argc, char **argv) {
     /* Function return values and status codes */
     int mpi_rv;
     MPI_Status mpi_status_prb, mpi_status_snd, mpi_status_rcv;
+    MPI_Request snd_req[4], rcv_req[4];
 
     /* Buffers */
     char buffer[BUFFER_SIZE] = {0};
@@ -326,27 +327,27 @@ int main (int argc, char **argv) {
         
         /* Communicate with lower x neighbour */
         sendBorder(grid_comm, TAG_LOW_X, cart_rank, nbr_low_x,
-            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_low_x, snd_count_low_x);
+            &(snd_req[0]), MPI_NEIGHBOUR_CELL, snd_low_x, snd_count_low_x);
         rcv_count_high_x = receiveBorder(grid_comm, TAG_LOW_X, cart_rank, nbr_high_x,
-            &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_high_x);
+            &(rcv_req[1]), &mpi_status_prb, MPI_NEIGHBOUR_CELL, &rcv_high_x);
 
         /* Communicate with higher x neighbour */
         sendBorder(grid_comm, TAG_HIGH_X, cart_rank, nbr_high_x,
-            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_high_x, snd_count_high_x);
+            &(snd_req[1]), MPI_NEIGHBOUR_CELL, snd_high_x, snd_count_high_x);
         rcv_count_low_x = receiveBorder(grid_comm, TAG_HIGH_X, cart_rank, nbr_low_x,
-            &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_low_x);
+            &(rcv_req[0]), &mpi_status_prb, MPI_NEIGHBOUR_CELL, &rcv_low_x);
         
         /* Communicate with lower y neighbour */
         sendBorder(grid_comm, TAG_LOW_Y, cart_rank, nbr_low_y,
-            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_low_y, snd_count_low_y);
+            &(snd_req[2]), MPI_NEIGHBOUR_CELL, snd_low_y, snd_count_low_y);
         rcv_count_high_y = receiveBorder(grid_comm, TAG_LOW_Y, cart_rank, nbr_high_y,
-            &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_high_y);
+            &(rcv_req[3]), &mpi_status_prb, MPI_NEIGHBOUR_CELL, &rcv_high_y);
 
-        /* Communicate with higher y neighbour */
+        /* Communicate with lower x neighbour */
         sendBorder(grid_comm, TAG_HIGH_Y, cart_rank, nbr_high_y,
-            &mpi_status_snd, MPI_NEIGHBOUR_CELL, snd_high_y, snd_count_high_y);
+            &(snd_req[3]), MPI_NEIGHBOUR_CELL, snd_high_y, snd_count_high_y);
         rcv_count_low_y = receiveBorder(grid_comm, TAG_HIGH_Y, cart_rank, nbr_low_y,
-            &mpi_status_prb, &mpi_status_rcv, MPI_NEIGHBOUR_CELL, &rcv_low_y);
+            &(rcv_req[2]), &mpi_status_prb, MPI_NEIGHBOUR_CELL, &rcv_low_y);
         
         // TODO Maybe evaluate MPI status just in case, create a checker function?
 
@@ -433,6 +434,8 @@ int main (int argc, char **argv) {
 
         /* Process neighbour nodes */
 
+        MPI_Wait(&(rcv_req[0]), &(mpi_status_rcv));
+        
         /* Process lower x row */
         for (i = 0; i < rcv_count_low_x; i++){
             y = rcv_low_x[i].y - offset_y;
@@ -440,6 +443,8 @@ int main (int argc, char **argv) {
             graphNodeAddNeighbour(&(local_graph[0][y]), z);
         }
 
+        MPI_Wait(&(rcv_req[1]), &(mpi_status_rcv));
+        
         /* Process higher x row */
         for (i = 0; i < rcv_count_high_x; i++){
             y = rcv_high_x[i].y - offset_y;
@@ -447,12 +452,16 @@ int main (int argc, char **argv) {
             graphNodeAddNeighbour(&(local_graph[dim_x - 1][y]), z);
         }
 
+        MPI_Wait(&(rcv_req[2]), &(mpi_status_rcv));
+
         /* Process lower y column */
         for (i = 0; i < rcv_count_low_y; i++){
             x = rcv_low_y[i].x - offset_x;
             z = rcv_low_y[i].z;
             graphNodeAddNeighbour(&(local_graph[x][0]), z);
         }
+
+        MPI_Wait(&(rcv_req[3]), &(mpi_status_rcv));        
 
         /* Process higher y column */
         for (i = 0; i < rcv_count_high_y; i++){
@@ -493,6 +502,10 @@ int main (int argc, char **argv) {
                     graphListCleanup(&(local_graph[x][y]));
                 }
             }
+        }
+
+        for (i = 0; i < 4; i++){
+            MPI_Wait(&(snd_req[i]), &(mpi_status_snd));
         }
 
     /***********************************************************************************/
@@ -627,17 +640,17 @@ void addToSndArray(Node *array, int index, int x, int y, int z){
 }
 
 void sendBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
-                MPI_Status *status_snd, MPI_Datatype mpi_datatype,
+               MPI_Request *req, MPI_Datatype mpi_datatype,
                 Node *snd, int snd_size){
 
-    MPI_Send(snd, snd_size, mpi_datatype, nbr_rank, mpi_tag, mpi_comm);
+    MPI_Isend(snd, snd_size, mpi_datatype, nbr_rank, mpi_tag, mpi_comm, req);
 
     // TODO - DEBUG
     //debugPrint("Rank %d <-> %d - sent %d (TAG %d)", my_rank, nbr_rank, snd_size, mpi_tag);
 }
 
 int receiveBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
-                    MPI_Status *status_prb, MPI_Status *status_rcv,
+                    MPI_Request *req, MPI_Status *status_prb,
                     MPI_Datatype mpi_datatype, Node **rcv){
 
     int rcv_size = 0;
@@ -649,7 +662,7 @@ int receiveBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
         *rcv = malloc(sizeof(Node) * rcv_size);
     }
 
-    MPI_Recv(*rcv, rcv_size, mpi_datatype, nbr_rank, mpi_tag, mpi_comm, MPI_STATUS_IGNORE);
+    MPI_Irecv(*rcv, rcv_size, mpi_datatype, nbr_rank, mpi_tag, mpi_comm, req);
 
     // TODO - DEBUG
     //debugPrint("Rank %d <-> %d - received %d (TAG %d)", my_rank, nbr_rank, rcv_size, mpi_tag);
