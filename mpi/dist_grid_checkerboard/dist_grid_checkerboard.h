@@ -46,74 +46,68 @@
 /* Function headers */
 
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief Parse command line arguments
  *
- * @param argc [description]
- * @param argv [description]
- * @param file [description]
- * @param generations [description]
+ * @param argc Argument count
+ * @param argv Argument values
+ * @param file The input file name
+ * @param generations The number of generations
  */
-void parseArgs(int argc, char* argv[], char** file, int* generations);
+void parseArgs(int argc, char *argv[], char **file, int *generations);
 
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief Inserts a node in the local graph
  *
- * @param graph [description]
- * @param offset_x [description]
- * @param offset_y [description]
- * @param x [description]
- * @param y [description]
- * @param z [description]
+ * @param graph The local graph representation
+ * @param offset_x The offset in coordinate x
+ * @param offset_y The offset in coordinate y
+ * @param x x global coordinate
+ * @param y y global coordinate
+ * @param z z global coordinate
  */
 void insertLocalGraph(GraphNode ***graph, int offset_x, int offset_y, int x, int y, int z);
 
 /**
- * @brief [brief description]
- * @details [long description]
- *
- * @param array [description]
- * @param index [description]
- * @param x [description]
- * @param y [description]
- * @param z [description]
+ * @brief Adds a reduced node to the boundary array to be sent
+ * 
+ * @param array The array of boundary reduced nodes
+ * @param index The index to insert reduced object in
+ * @param a x or y local coordinate
+ * @param z z global coordinate
  */
-void addToSndArray(Node *array, int index, int x, int y, int z);
+void addToSndArray(RNode *array, int index, int a, int z);
 
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief Sends a border to a neighbour process
  *
- * @param mpi_comm [description]
- * @param mpi_tag [description]
- * @param my_rank [description]
- * @param nbr_rank [description]
- * @param status_snd [description]
- * @param mpi_datatype [description]
- * @param snd [description]
- * @param snd_size [description]
+ * @param mpi_comm The MPI Communicator object
+ * @param mpi_tag The monitored MPI tag
+ * @param my_rank Origin process rank
+ * @param nbr_rank Destination process rank
+ * @param status_snd MPI Status object for sending
+ * @param mpi_datatype MPI Datatype of object to be sent
+ * @param snd The array to be sent
+ * @param snd_size The size of the array to be sent
  */
 void sendBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
-               MPI_Request *req, MPI_Datatype mpi_datatype,
-                Node *snd, int snd_size);
+            	MPI_Request *req, MPI_Datatype mpi_datatype,
+                RNode *snd, int snd_size);
 
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief Sends a border from a neighbour process
  *
- * @param mpi_comm [description]
- * @param mpi_tag [description]
- * @param my_rank [description]
- * @param nbr_rank [description]
- * @param status_prb [description]
- * @param status_rcv [description]
- * @param mpi_datatype [description]
- * @param rcv [description]
- * @return [description]
+ * @param mpi_comm The MPI Communicator object
+ * @param mpi_tag The monitored MPI tag
+ * @param my_rank Destination process rank
+ * @param nbr_rank Origin process rank
+ * @param status_prb MPI Status object for probing to obtain size
+ * @param status_rcv MPI Status object for receiving
+ * @param mpi_datatype  MPI Datatype of object to be received
+ * @param rcv The array to be received
+ * @return The size of the array to be received
  */
 int receiveBorder(MPI_Comm mpi_comm, int mpi_tag, int my_rank, int nbr_rank,
                     MPI_Request *req, MPI_Status *status_prb,
-                    MPI_Datatype mpi_datatype, Node **rcv);
+                    MPI_Datatype mpi_datatype, RNode **rcv);
 
 #endif
