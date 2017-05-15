@@ -10,7 +10,7 @@
  *  @bug No known bugs.
  */
 
-#define VERBOSE 1
+//#define VERBOSE 1
 #define TIMING 1
 
 #ifdef VERBOSE

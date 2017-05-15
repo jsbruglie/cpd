@@ -5,8 +5,8 @@
 *  @author Miguel Cardoso
 */
 #include "dist_grid_rows.h"
-const bool ROW_WISE = true;
-const bool COLUMN_WISE = false;
+const bool ROW_WISE = false;
+const bool COLUMN_WISE = true;
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++ MAIN +++++++++++++++++++++++++++++++++++++++++++++++++++*/
 int main(int argc, char **argv) {
@@ -135,12 +135,16 @@ int main(int argc, char **argv) {
         fclose(fp);fp = fopen(file, "r"); //Close and reopen file to reset fp
         while(fgets(buffer, BUFFER_SIZE, fp)){
             if(sscanf(buffer, "%d %d %d\n", &x, &y, &z) == 3){
-                if(ROW_WISE){
-                    initial_global_graph[x][y] = graphNodeInsert(initial_global_graph[x][y], z, ALIVE); /* Insert live nodes in the graph*/
-                }
-                if(COLUMN_WISE){
-                    initial_global_graph[y][x] = graphNodeInsert(initial_global_graph[y][x], z, ALIVE); /* Insert live nodes in the graph*/
-                }
+                if(nprocs != 1){
+			if(ROW_WISE){
+                    		initial_global_graph[x][y] = graphNodeInsert(initial_global_graph[x][y], z, ALIVE); /* Insert live nodes in the graph*/
+                	}
+                	if(COLUMN_WISE){
+                    		initial_global_graph[y][x] = graphNodeInsert(initial_global_graph[y][x], z, ALIVE); /* Insert live nodes in the graph*/
+                	}
+		}else{
+			 initial_global_graph[x][y] = graphNodeInsert(initial_global_graph[x][y], z, ALIVE); /* Insert live nodes in the graph*/
+		}
             }
         }
         if(nprocs == 1){
@@ -221,7 +225,7 @@ int main(int argc, char **argv) {
     /*ROOT has the first set of sendbuffer - it's own cells_receive*/
     rank_print(rank);debug_print("BLOCK_LOW: %d, BLOCK_HIGH: %d, BLOCK_SIZE: %d\n", BLOCK_LOW(rank,nprocs,size), BLOCK_HIGH(rank,nprocs,size), BLOCK_SIZE(rank,nprocs,size));
     if(rank == ROOT){
-        for(int i=0; i<cells_receive; i++){
+        for(i=0; i<cells_receive; i++){
             receivebuffer[i].y = sendbuffer[i].y;
             receivebuffer[i].z = sendbuffer[i].z;
             receivebuffer[i].x = sendbuffer[i].x;

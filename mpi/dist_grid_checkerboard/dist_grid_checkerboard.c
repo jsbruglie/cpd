@@ -591,7 +591,7 @@ int main (int argc, char **argv) {
         }
 
         /* Print the final set of live cells */
-        printAndSortActive(global_graph, cube_size); fflush(stdout);
+        //printAndSortActive(global_graph, cube_size); fflush(stdout);
 
         /* Free global graph */
         freeGraph(global_graph, cube_size, cube_size);
